@@ -59,7 +59,7 @@ class TicTacToeEnvProblemTest(tf.test.TestCase):
         elif r == 1:
           num_won += 1
         else:
-          raise ValueError("reward should be -1, 0, 1 but is {}".format(r))
+          raise ValueError(f"reward should be -1, 0, 1 but is {r}")
 
     # Assert that something got done atleast, without that the next assert is
     # meaningless.

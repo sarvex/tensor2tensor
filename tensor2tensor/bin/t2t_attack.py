@@ -185,7 +185,7 @@ def main(argv):
   }
 
   # add "_rev" as a hack to avoid image standardization
-  problem = registry.problem(FLAGS.problem + "_rev")
+  problem = registry.problem(f"{FLAGS.problem}_rev")
 
   inputs, labels, features = prepare_data(problem, hparams, params, config)
 

@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Train and evaluate."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -107,8 +108,11 @@ flags.DEFINE_string("std_server_protocol", "grpc",
                     "Protocol for tf.train.Server.")
 
 # Google Cloud TPUs
-flags.DEFINE_string("cloud_tpu_name", "%s-tpu" % os.getenv("USER"),
-                    "Name of Cloud TPU instance to use or create.")
+flags.DEFINE_string(
+    "cloud_tpu_name",
+    f'{os.getenv("USER")}-tpu',
+    "Name of Cloud TPU instance to use or create.",
+)
 
 # Google Cloud ML Engine
 flags.DEFINE_bool("cloud_mlengine", False,
@@ -167,9 +171,9 @@ def set_hparams_from_args(args):
       tf.logging.warn("Found unknown flag: %s", arg)
       i += 1
 
-  as_hparams = ",".join(["%s=%s" % (key, val) for key, val in pairs])
+  as_hparams = ",".join([f"{key}={val}" for key, val in pairs])
   if FLAGS.hparams:
-    as_hparams = "," + as_hparams
+    as_hparams = f",{as_hparams}"
   FLAGS.hparams += as_hparams
 
 
@@ -298,7 +302,7 @@ def generate_data():
   tf.gfile.MakeDirs(tmp_dir)
 
   problem_name = FLAGS.problem
-  tf.logging.info("Generating data for %s" % problem_name)
+  tf.logging.info(f"Generating data for {problem_name}")
   registry.problem(problem_name).generate_data(data_dir, tmp_dir)
 
 
@@ -335,13 +339,13 @@ def save_metadata(hparams):
   if hasattr(FLAGS, "flags_into_string"):
     flags_str = FLAGS.flags_into_string()
     t2t_flags_str = "\n".join([
-        "--%s=%s" % (f.name, f.value)
+        f"--{f.name}={f.value}"
         for f in FLAGS.flags_by_module_dict()["tensor2tensor.utils.flags"]
     ])
   else:
     flags_dict = FLAGS.__dict__["__flags"]
     flags_str = "\n".join(
-        ["--%s=%s" % (name, str(f)) for (name, f) in flags_dict.items()])
+        [f"--{name}={str(f)}" for (name, f) in flags_dict.items()])
     t2t_flags_str = None
 
   flags_txt = os.path.join(output_dir, "flags.txt")
@@ -365,8 +369,7 @@ def save_metadata(hparams):
 
 def execute_schedule(exp):
   if not hasattr(exp, FLAGS.schedule):
-    raise ValueError(
-        "Experiment has no method %s, from --schedule" % FLAGS.schedule)
+    raise ValueError(f"Experiment has no method {FLAGS.schedule}, from --schedule")
   with profile_context():
     getattr(exp, FLAGS.schedule)()
 
@@ -392,7 +395,7 @@ def main(argv):
   if FLAGS.gpu_automatic_mixed_precision:
     setattr(hparams, "gpu_automatic_mixed_precision", True)
 
-  if FLAGS.schedule == "train" or FLAGS.schedule == "train_eval_and_decode":
+  if FLAGS.schedule in ["train", "train_eval_and_decode"]:
     mlperf_log.transformer_print(key=mlperf_log.RUN_START, hparams=hparams)
   if FLAGS.schedule == "run_std_server":
     run_std_server()

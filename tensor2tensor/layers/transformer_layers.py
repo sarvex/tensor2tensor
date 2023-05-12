@@ -305,7 +305,28 @@ def transformer_ffn_layer(x,
   if ffn_layer == "conv_hidden_relu":
     # Backwards compatibility
     ffn_layer = "dense_relu_dense"
-  if ffn_layer == "dense_relu_dense":
+  if ffn_layer == "conv_hidden_relu_with_sepconv":
+    return common_layers.conv_hidden_relu(
+        x,
+        readout_filter_size or hparams.filter_size,
+        hparams.hidden_size,
+        kernel_size=(3, 1),
+        second_kernel_size=(31, 1),
+        padding="LEFT",
+        dropout=hparams.relu_dropout)
+  elif ffn_layer == "conv_relu_conv":
+    return common_layers.conv_relu_conv(
+        x,
+        readout_filter_size or hparams.filter_size,
+        hparams.hidden_size,
+        first_kernel_size=hparams.conv_first_kernel,
+        second_kernel_size=1,
+        padding=conv_padding,
+        nonpadding_mask=nonpadding_mask,
+        dropout=hparams.relu_dropout,
+        cache=cache,
+        decode_loop_step=decode_loop_step)
+  elif ffn_layer == "dense_relu_dense":
     # In simple convolution mode, use `pad_remover` to speed up processing.
     mlperf_log.transformer_print(
         key=mlperf_log.MODEL_HP_FFN_FILTER_DENSE,
@@ -339,51 +360,9 @@ def transformer_ffn_layer(x,
       conv_output = tf.reshape(
           pad_remover.restore(tf.squeeze(conv_output, axis=0)), original_shape)
     return conv_output
-  elif ffn_layer == "conv_relu_conv":
-    return common_layers.conv_relu_conv(
-        x,
-        readout_filter_size or hparams.filter_size,
-        hparams.hidden_size,
-        first_kernel_size=hparams.conv_first_kernel,
-        second_kernel_size=1,
-        padding=conv_padding,
-        nonpadding_mask=nonpadding_mask,
-        dropout=hparams.relu_dropout,
-        cache=cache,
-        decode_loop_step=decode_loop_step)
-  elif ffn_layer == "parameter_attention":
-    return common_attention.parameter_attention(
-        x, hparams.parameter_attention_key_channels or hparams.hidden_size,
-        hparams.parameter_attention_value_channels or hparams.hidden_size,
-        hparams.hidden_size, readout_filter_size or hparams.filter_size,
-        hparams.num_heads,
-        hparams.attention_dropout)
-  elif ffn_layer == "conv_hidden_relu_with_sepconv":
-    return common_layers.conv_hidden_relu(
-        x,
-        readout_filter_size or hparams.filter_size,
-        hparams.hidden_size,
-        kernel_size=(3, 1),
-        second_kernel_size=(31, 1),
-        padding="LEFT",
-        dropout=hparams.relu_dropout)
-  elif ffn_layer == "sru":
-    return common_layers.sru(x)
-  elif ffn_layer == "local_moe_tpu":
-    overhead = hparams.moe_overhead_eval
-    if hparams.mode == tf.estimator.ModeKeys.TRAIN:
-      overhead = hparams.moe_overhead_train
-    ret, loss = expert_utils.local_moe_tpu(
-        x,
-        hparams.filter_size // 2,
-        hparams.hidden_size,
-        hparams.moe_num_experts,
-        overhead=overhead,
-        loss_coef=hparams.moe_loss_coef)
   elif ffn_layer == "local_moe":
-    overhead = hparams.moe_overhead_eval
-    if hparams.mode == tf.estimator.ModeKeys.TRAIN:
-      overhead = hparams.moe_overhead_train
+    overhead = (hparams.moe_overhead_train if hparams.mode
+                == tf.estimator.ModeKeys.TRAIN else hparams.moe_overhead_eval)
     ret, loss = expert_utils.local_moe(
         x,
         True,
@@ -394,6 +373,25 @@ def transformer_ffn_layer(x,
         hparams=hparams)
     losses.append(loss)
     return ret
+  elif ffn_layer == "local_moe_tpu":
+    overhead = (hparams.moe_overhead_train if hparams.mode
+                == tf.estimator.ModeKeys.TRAIN else hparams.moe_overhead_eval)
+    ret, loss = expert_utils.local_moe_tpu(
+        x,
+        hparams.filter_size // 2,
+        hparams.hidden_size,
+        hparams.moe_num_experts,
+        overhead=overhead,
+        loss_coef=hparams.moe_loss_coef)
+  elif ffn_layer == "parameter_attention":
+    return common_attention.parameter_attention(
+        x, hparams.parameter_attention_key_channels or hparams.hidden_size,
+        hparams.parameter_attention_value_channels or hparams.hidden_size,
+        hparams.hidden_size, readout_filter_size or hparams.filter_size,
+        hparams.num_heads,
+        hparams.attention_dropout)
+  elif ffn_layer == "sru":
+    return common_layers.sru(x)
   else:
     assert ffn_layer == "none"
     return x

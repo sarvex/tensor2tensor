@@ -38,9 +38,7 @@ class Text2textCopyableTokens(text_problems.Text2textTmpdirTokens):
 
   def get_or_create_vocab(self, data_dir, tmp_dir, force_get=False):
     vocab_filename = os.path.join(data_dir, self.vocab_filename)
-    encoder = TokenTextEncoderOov(
-        vocab_filename, replace_oov=self.oov_token)
-    return encoder
+    return TokenTextEncoderOov(vocab_filename, replace_oov=self.oov_token)
 
   def generate_encoded_samples(self, data_dir, tmp_dir, dataset_split):
     generator = self.generate_samples(data_dir, tmp_dir, dataset_split)
@@ -167,10 +165,7 @@ class TokenTextEncoderOov(text_encoder.TokenTextEncoder):
           ids_extend.append(vocab_idx)
         else:
           ids_extend.append(self._token_to_id[self._replace_oov])
-    if self._reverse:
-      return ids[::-1], ids_extend[::-1]
-    else:
-      return ids, ids_extend
+    return (ids[::-1], ids_extend[::-1]) if self._reverse else (ids, ids_extend)
 
   def decode_oov(self, ids, source_oov):
     return " ".join(self.decode_list_oov(ids, source_oov))

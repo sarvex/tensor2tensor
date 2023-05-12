@@ -48,11 +48,7 @@ def aggregate_stats(stats_files):
       stats = json.loads(f.read())
       for k, v in six.iteritems(stats):
         if k not in all_stats:
-          if isinstance(v, list):
-            all_stats[k] = []
-          else:
-            all_stats[k] = 0
-
+          all_stats[k] = [] if isinstance(v, list) else 0
         if isinstance(v, list):
           all_stats[k].extend(v)
         else:
@@ -78,7 +74,7 @@ def aggregate_stats(stats_files):
                                                   coverage_bounds)
   coverage_dist = coverage_counts.astype(np.float32) / coverage_counts.sum()
 
-  agg_stats = dict(
+  return dict(
       total_original_wikis=stats["total_original_wikis"],
       total_original_refs=stats["total_original_refs"],
       wiki_coverage=wiki_coverage,
@@ -90,7 +86,6 @@ def aggregate_stats(stats_files):
       ref_len_dist=list((len_dist * 100).astype(int)),
       ref_len_bounds=list(len_bounds),
   )
-  return agg_stats
 
 
 def filename_to_task_id(fname):
@@ -105,8 +100,7 @@ def filename_to_task_id(fname):
   parts = fname.split("-")
   split = parts[1]
   shard_id = parts[2]
-  task_id = int(shard_id) + shard_id_increment[split]
-  return task_id
+  return int(shard_id) + shard_id_increment[split]
 
 
 def get_length(fname):
@@ -131,8 +125,7 @@ def validate_data_files(problem, data_files, min_size):
   if too_small:
     tf.logging.error("%d files too small", len(too_small))
 
-  bad_files = too_small + list(missing_filepaths)
-  return bad_files
+  return too_small + list(missing_filepaths)
 
 
 def main(_):
@@ -141,7 +134,7 @@ def main(_):
   else:
     problem = wikisum.WikisumWeb()
   prefix = problem.dataset_filename()
-  data_files = tf.gfile.Glob(os.path.join(FLAGS.out_dir, "%s*" % prefix))
+  data_files = tf.gfile.Glob(os.path.join(FLAGS.out_dir, f"{prefix}*"))
   missing_files = validate_data_files(
       problem, data_files,
       min_size=(60 if FLAGS.for_commoncrawl else 120) * 1e6)
@@ -157,7 +150,7 @@ def main(_):
   agg_stats = aggregate_stats(stats_files)
   if not FLAGS.for_commoncrawl:
     coverage = agg_stats["overall_ref_coverage"] * 100
-    if not coverage > 80:
+    if coverage <= 80:
       tf.logging.error("Overall reference coverage is expected to be > 80%. "
                        "It is %0.1f. You may want to rerun get_references_web.",
                        coverage)

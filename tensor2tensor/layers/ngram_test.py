@@ -41,7 +41,7 @@ class NGramTest(tf.test.TestCase):
     layer = ngram.NGram(vocab_size, minval, maxval)
     outputs = layer(inputs)
     outputs_val = self.evaluate(outputs)
-    num_ngrams = sum([vocab_size**n for n in range(minval, maxval)])
+    num_ngrams = sum(vocab_size**n for n in range(minval, maxval))
     self.assertEqual(outputs_val.shape, (batch_size, num_ngrams))
 
   @test_utils.run_in_graph_and_eager_modes()

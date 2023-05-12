@@ -63,10 +63,10 @@ def get_completed_trajectories_from_env(env,
   if raw_trajectory:
     return env.trajectories.completed_trajectories[:n_trajectories]
 
-  # The numpy version of the above.
-  completed_trajectories = []
-  for trajectory in env.trajectories.completed_trajectories[:n_trajectories]:
-    completed_trajectories.append(trajectory.as_numpy)
+  completed_trajectories = [
+      trajectory.as_numpy for trajectory in
+      env.trajectories.completed_trajectories[:n_trajectories]
+  ]
   return completed_trajectories
 
 
@@ -232,9 +232,9 @@ def make_env(batch_size=1,
   """Creates the env."""
 
   if clip_rewards:
-    env_kwargs.update({"reward_range": (-1, 1), "discrete_rewards": True})
+    env_kwargs |= {"reward_range": (-1, 1), "discrete_rewards": True}
   else:
-    env_kwargs.update({"discrete_rewards": False})
+    env_kwargs["discrete_rewards"] = False
 
   # TODO(henrykm) - below someone linked "resize" with "abnormality"
   # Probably we need more nuanced concept of "abnormality"

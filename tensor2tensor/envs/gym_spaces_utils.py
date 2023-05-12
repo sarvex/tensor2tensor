@@ -98,7 +98,7 @@ def cardinality(gym_space):
     implemented it.
   """
 
-  if (gym_space.dtype == np.float32) or (gym_space.dtype == np.float64):
+  if gym_space.dtype in [np.float32, np.float64]:
     tf.logging.warn("Returning None for a float gym space's cardinality: %s",
                     gym_space)
     return None

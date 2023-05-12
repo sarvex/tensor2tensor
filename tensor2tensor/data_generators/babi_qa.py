@@ -26,6 +26,7 @@ Available at: http://arxiv.org/abs/1502.05698
 
 """
 
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -49,8 +50,8 @@ import tensorflow.compat.v1 as tf
 
 
 _DIR_NAME = "tasks_1-20_v1-2"
-_TAR = _DIR_NAME + ".tar.gz"
-_URL = "http://www.thespermwhale.com/jaseweston/babi/" + _TAR
+_TAR = f"{_DIR_NAME}.tar.gz"
+_URL = f"http://www.thespermwhale.com/jaseweston/babi/{_TAR}"
 
 _TASKS = {
     "qa0": "qa0_all-tasks",
@@ -211,7 +212,7 @@ def _babi_parser(tmp_dir,
   def _parse_answer(answer):
     if (joint_training or babi_task_id in ["qa8", "qa19", "qa0"
                                           ]):  # "lists-sets" or "path finding"
-      return "".join([d for d in answer.split(",")])  # as a single token!
+      return "".join(list(answer.split(",")))
     else:
       return answer
 
@@ -294,11 +295,11 @@ class BabiQa(text_problems.QuestionAndContext2TextProblem):
     raise NotImplementedError
 
   def dataset_filename(self):
-    return "babi_qa_" + self.babi_subset + "_" + _TASKS[self.babi_task_id]
+    return f"babi_qa_{self.babi_subset}_{_TASKS[self.babi_task_id]}"
 
   @property
   def vocab_file(self):
-    return self.babi_subset + "_" + _TASKS[self.babi_task_id] + ".vocab"
+    return f"{self.babi_subset}_{_TASKS[self.babi_task_id]}.vocab"
 
   @property
   def dataset_splits(self):
@@ -475,8 +476,6 @@ def _problems_to_register():
   Returns:
     A dictionary mapping problem name to babi_task_id.
   """
-  all_problems = {}
-
   # First define some problems using only concrete characters (i.e., no meta
   # characters).
   problems_on_different_tasks = {
@@ -502,9 +501,7 @@ def _problems_to_register():
       "Task19": "qa19",
       "Task20": "qa20",
   }
-  all_problems.update(problems_on_different_tasks)
-
-  return all_problems
+  return dict(problems_on_different_tasks)
 
 
 def _register_babi_problems():
@@ -530,11 +527,14 @@ def _register_babi_problems():
   """
   for (subset, subset_suffix) in [("en", "_1k"), ("en-10k", "_10k")]:
     for problem_name, babi_task_id in six.iteritems(_problems_to_register()):
-      problem_class = type("BabiQaConcat" + problem_name + subset_suffix,
-                           (BabiQaConcat,), {
-                               "babi_task_id": babi_task_id,
-                               "babi_subset": subset
-                           })
+      problem_class = type(
+          f"BabiQaConcat{problem_name}{subset_suffix}",
+          (BabiQaConcat, ),
+          {
+              "babi_task_id": babi_task_id,
+              "babi_subset": subset
+          },
+      )
       registry.register_problem(problem_class)
       REGISTERED_PROBLEMS.append(problem_class.name)
 

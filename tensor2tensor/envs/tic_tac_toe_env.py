@@ -47,9 +47,7 @@ def get_open_spaces(board):
   """Given a representation of the board, returns a list of open spaces."""
   open_spaces = []
   for i in range(3):
-    for j in range(3):
-      if board[i][j] == 0:
-        open_spaces.append(encode_pos(i, j))
+    open_spaces.extend(encode_pos(i, j) for j in range(3) if board[i][j] == 0)
   return open_spaces
 
 
@@ -73,10 +71,7 @@ def get_reward_and_done(board):
   if 3 in all_sums:
     return 1, True
 
-  done = True
-  if get_open_spaces(board):
-    done = False
-
+  done = not get_open_spaces(board)
   return 0, done
 
 

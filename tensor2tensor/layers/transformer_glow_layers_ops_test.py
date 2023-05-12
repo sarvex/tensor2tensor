@@ -77,11 +77,12 @@ class TransformerFlowOpsTest(parameterized.TestCase, tf.test.TestCase):
         (BATCH_SIZE, 1, 1, INPUT_LENGTH))
     decoder_self_attention_bias = tf.random.uniform(
         (BATCH_SIZE, 1, 1, TARGET_LENGTH))
-    kwargs = {"hparams": hparams,
-              "encoder_output": encoder_output,
-              "encoder_decoder_attention_bias": encoder_decoder_attention_bias,
-              "decoder_self_attention_bias": decoder_self_attention_bias}
-    return kwargs
+    return {
+        "hparams": hparams,
+        "encoder_output": encoder_output,
+        "encoder_decoder_attention_bias": encoder_decoder_attention_bias,
+        "decoder_self_attention_bias": decoder_self_attention_bias,
+    }
 
   def test_dense_weightnorm(self):
     x, x_mask = self.get_data()

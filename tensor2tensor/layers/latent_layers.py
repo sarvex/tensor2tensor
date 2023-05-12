@@ -95,8 +95,7 @@ def multinomial_sample(x, vocab_size=None, sampling_method="random",
     samples = tf.multinomial(tf.reshape(x, [-1, vocab_size]) / temperature, 1)
   else:
     samples = tf.argmax(x, axis=-1)
-  reshaped_samples = tf.reshape(samples, common_layers.shape_list(x)[:-1])
-  return reshaped_samples
+  return tf.reshape(samples, common_layers.shape_list(x)[:-1])
 
 
 def ae_latent_softmax(latents_pred, latents_discrete_hot, vocab_size, hparams):
@@ -264,7 +263,7 @@ def compress_encoder(inputs,
     shape_x = common_layers.shape_list(x)
     x = tf.layers.dense(x,
                         hparams.num_latents * hparams.hidden_size,
-                        name=name + "_dense")
+                        name=f"{name}_dense")
     return tf.reshape(x, [shape_x[0],
                           shape_x[1] * shape_x[2] * hparams.num_latents,
                           hparams.hidden_size])
@@ -331,7 +330,7 @@ def decompress_decoder(inputs,
   """
   with tf.variable_scope(name, default_name="decompress"):
     x = inputs
-    x = tf.layers.dense(x, hparams.hidden_size, name=name + "_dense")
+    x = tf.layers.dense(x, hparams.hidden_size, name=f"{name}_dense")
     x = residual_block_layer(x, hparams)
     for i in range(hparams.num_compress_steps // 2):
       j = hparams.num_compress_steps // 2 - i - 1

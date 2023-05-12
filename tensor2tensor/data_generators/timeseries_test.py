@@ -45,11 +45,12 @@ class TimeseriesTest(tf.test.TestCase):
     examples = []
     exhausted = False
     with self.test_session() as sess:
-      examples.append(sess.run(features))
-      examples.append(sess.run(features))
-      examples.append(sess.run(features))
-      examples.append(sess.run(features))
-
+      examples.extend((
+          sess.run(features),
+          sess.run(features),
+          sess.run(features),
+          sess.run(features),
+      ))
       try:
         sess.run(features)
       except tf.errors.OutOfRangeError:
@@ -71,12 +72,13 @@ class TimeseriesTest(tf.test.TestCase):
     examples = []
     exhausted = False
     with self.test_session() as sess:
-      examples.append(sess.run(features))
-      examples.append(sess.run(features))
-      examples.append(sess.run(features))
-      examples.append(sess.run(features))
-      examples.append(sess.run(features))
-
+      examples.extend((
+          sess.run(features),
+          sess.run(features),
+          sess.run(features),
+          sess.run(features),
+          sess.run(features),
+      ))
       try:
         sess.run(features)
       except tf.errors.OutOfRangeError:

@@ -81,7 +81,7 @@ class DNAEncoder(text_encoder.TextEncoder):
       end_idx = start_idx + self._chunk_size
       chunk = tuple(bases[start_idx:end_idx])
       if chunk not in self._tokens_to_ids:
-        raise ValueError("Unrecognized token %s" % chunk)
+        raise ValueError(f"Unrecognized token {chunk}")
       ids.append(self._tokens_to_ids[chunk])
     return ids
 
@@ -92,9 +92,9 @@ class DNAEncoder(text_encoder.TextEncoder):
         chunk = self._ids_to_tokens[idx]
         if self.PAD in chunk:
           chunk = chunk[:chunk.index(self.PAD)]
+      elif strip_extraneous:
+        continue
       else:
-        if strip_extraneous:
-          continue
         chunk = [text_encoder.RESERVED_TOKENS[idx]]
       bases.extend(chunk)
     return "".join(bases)

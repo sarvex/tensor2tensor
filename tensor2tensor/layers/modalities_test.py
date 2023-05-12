@@ -40,16 +40,13 @@ class ModalityTest(tf.test.TestCase):
       targets_bottom = modalities.get_targets_bottom(modality)
       top = modalities.get_top(modality)
       weights_fn = modalities.get_weights_fn(modality)
-      self.assertIsNotNone(bottom,
-                           msg="{} has no default bottom".format(modality))
-      self.assertIsNotNone(loss, msg="{} has no default loss".format(modality))
-      self.assertIsNotNone(name, msg="{} has no default name".format(modality))
-      self.assertIsNotNone(
-          targets_bottom,
-          msg="{} has no default targets_bottom".format(modality))
-      self.assertIsNotNone(top, msg="{} has no default top".format(modality))
-      self.assertIsNotNone(weights_fn,
-                           msg="{} has no default weights_fn".format(modality))
+      self.assertIsNotNone(bottom, msg=f"{modality} has no default bottom")
+      self.assertIsNotNone(loss, msg=f"{modality} has no default loss")
+      self.assertIsNotNone(name, msg=f"{modality} has no default name")
+      self.assertIsNotNone(targets_bottom,
+                           msg=f"{modality} has no default targets_bottom")
+      self.assertIsNotNone(top, msg=f"{modality} has no default top")
+      self.assertIsNotNone(weights_fn, msg=f"{modality} has no default weights_fn")
 
   @test_utils.run_in_graph_and_eager_modes()
   def testSymbolModalityInputs(self):

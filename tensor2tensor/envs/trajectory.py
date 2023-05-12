@@ -37,9 +37,7 @@ TRAJECTORY_FILE_FORMAT = r"trajectory_epoch_{epoch}_env_id_{env_id}_temperature_
 
 
 def get_pickle_module():
-  if sys.version_info[0] < 3:
-    return cloudpickle
-  return pickle
+  return cloudpickle if sys.version_info[0] < 3 else pickle
 
 
 class Trajectory(object):
@@ -47,15 +45,12 @@ class Trajectory(object):
 
   def __init__(self, time_steps=None):
     # Contains a list of time steps.
-    if time_steps is None:
-      self._time_steps = []
-    else:
-      self._time_steps = time_steps
+    self._time_steps = [] if time_steps is None else time_steps
 
   def __str__(self):
     if not self.time_steps:
       return "Trajectory[]"
-    return "Trajectory[{}]".format(", ".join(str(ts) for ts in self.time_steps))
+    return f'Trajectory[{", ".join(str(ts) for ts in self.time_steps)}]'
 
   def add_time_step(self, **create_time_step_kwargs):
     """Creates a time-step and appends it to the list.
@@ -145,12 +140,10 @@ class Trajectory(object):
   def info_np(self):
     if not self.time_steps or not self.time_steps[0].info:
       return None
-    info_np_dict = {}
-    for info_key in self.time_steps[0].info:
-      # Same as actions, the last info is missing, so we skip it.
-      info_np_dict[info_key] = np.stack(
-          [ts.info[info_key] for ts in self.time_steps[:-1]])
-    return info_np_dict
+    return {
+        info_key: np.stack([ts.info[info_key] for ts in self.time_steps[:-1]])
+        for info_key in self.time_steps[0].info
+    }
 
   @property
   def rewards_np(self):
@@ -192,10 +185,10 @@ class BatchTrajectory(object):
   def __str__(self):
     string = "BatchTrajectory["
     for i, t in enumerate(self.trajectories):
-      string += "Trajectory {} = {}\n".format(i, str(t))
+      string += f"Trajectory {i} = {str(t)}\n"
     for i, t in enumerate(self.completed_trajectories):
-      string += "Completed Trajectory {} = {}\n".format(i, str(t))
-    return string + "]"
+      string += f"Completed Trajectory {i} = {str(t)}\n"
+    return f"{string}]"
 
   @property
   def trajectories(self):
@@ -359,9 +352,7 @@ class BatchTrajectory(object):
         assert self.batch_size == len(v)
 
     def extract_info_at_index(infos, index):
-      if not infos:
-        return None
-      return {k: v[index] for k, v in infos.items()}
+      return None if not infos else {k: v[index] for k, v in infos.items()}
 
     for index in range(self.batch_size):
       trajectory = self._trajectories[index]

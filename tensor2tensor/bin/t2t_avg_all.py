@@ -62,9 +62,9 @@ def main(_):
     if models_processed == 0:
       var_list = tf.train.list_variables(model.filename)
       avg_values = {}
-      for (name, shape) in var_list:
-        if not (name.startswith("global_step") or
-                name.startswith("train_stats/")):
+      for name, shape in var_list:
+        if not name.startswith("global_step") and not name.startswith(
+            "train_stats/"):
           avg_values[name] = np.zeros(shape)
     models_processed += 1
 
@@ -77,11 +77,11 @@ def main(_):
       continue
 
     out_file = "%s-%d" % (out_base_file, model.steps)
-    tf_vars = []
-    tf.logging.info("Averaging %s" % (out_file))
-    for (name, value) in six.iteritems(avg_values):
-      # TODO(martinpopel): dtype=var_dtypes[name]
-      tf_vars.append(tf.get_variable(name, shape=value.shape))
+    tf.logging.info(f"Averaging {out_file}")
+    tf_vars = [
+        tf.get_variable(name, shape=value.shape)
+        for name, value in six.iteritems(avg_values)
+    ]
     placeholders = [tf.placeholder(v.dtype, shape=v.shape) for v in tf_vars]
     assign_ops = [tf.assign(v, p) for (v, p) in zip(tf_vars, placeholders)]
 
@@ -93,15 +93,15 @@ def main(_):
       tf.get_variable("problem_0_steps", initializer=0, trainable=False)
     saver = tf.train.Saver(tf.global_variables())
 
-    tf.logging.info("Running session for %s" % (out_file))
+    tf.logging.info(f"Running session for {out_file}")
     with tf.Session() as sess:
       sess.run(tf.global_variables_initializer())
       for p, assign_op, (name, value) in zip(
           placeholders, assign_ops, six.iteritems(avg_values)):
         sess.run(assign_op, {p: value})
-      tf.logging.info("Storing to %s" % out_file)
+      tf.logging.info(f"Storing to {out_file}")
       saver.save(sess, out_base_file, global_step=global_step)
-    os.utime(out_file + ".index", (model.mtime, model.mtime))
+    os.utime(f"{out_file}.index", (model.mtime, model.mtime))
 
     tf.reset_default_graph()
     first_model = queue.popleft()

@@ -112,11 +112,12 @@ class TransformerGlowLayersTest(parameterized.TestCase, tf.test.TestCase):
         (BATCH_SIZE, 1, 1, INPUT_LENGTH), dtype=DTYPE)
     decoder_self_attention_bias = 1.0 - x_mask[:, tf.newaxis, tf.newaxis, :]
     decoder_self_attention_bias *= -1e9
-    kwargs = {"hparams": hparams,
-              "encoder_output": encoder_output,
-              "encoder_decoder_attention_bias": encoder_decoder_attention_bias,
-              "decoder_self_attention_bias": decoder_self_attention_bias}
-    return kwargs
+    return {
+        "hparams": hparams,
+        "encoder_output": encoder_output,
+        "encoder_decoder_attention_bias": encoder_decoder_attention_bias,
+        "decoder_self_attention_bias": decoder_self_attention_bias,
+    }
 
   def test_actnorm(self):
     _, x_mask, _ = self.get_data()

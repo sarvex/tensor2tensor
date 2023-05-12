@@ -68,9 +68,9 @@ class SciTail(text_problems.TextConcat2ClassProblem):
     return ["neutral", "entails"]
 
   def _maybe_download_corpora(self, tmp_dir):
-    scitail_filename = "SciTailV1.1.zip"
     scitail_finalpath = os.path.join(tmp_dir, "SciTailV1.1")
     if not tf.gfile.Exists(scitail_finalpath):
+      scitail_filename = "SciTailV1.1.zip"
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, scitail_filename, self._SCITAIL_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -100,8 +100,7 @@ class SciTail(text_problems.TextConcat2ClassProblem):
       filesplit = "tsv_format/scitail_1.0_dev.tsv"
 
     filename = os.path.join(scitail_dir, filesplit)
-    for example in self.example_generator(filename):
-      yield example
+    yield from self.example_generator(filename)
 
 
 @registry.register_problem

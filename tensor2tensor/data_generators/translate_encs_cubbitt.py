@@ -78,21 +78,18 @@ class TranslateEncsCubbitt(translate_encs.TranslateEncsWmt32k):
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     datasets = self.source_data_files(dataset_split)
     tag = "train" if dataset_split == problem.DatasetSplit.TRAIN else "dev"
-    data_path = translate.compile_data(
-        tmp_dir, datasets, "%s-compiled-%s" % (self.name, tag))
+    data_path = translate.compile_data(tmp_dir, datasets,
+                                       f"{self.name}-compiled-{tag}")
     # For eval, use authentic data.
     if dataset_split != problem.DatasetSplit.TRAIN:
-      for example in text_problems.text2text_txt_iterator(
-          data_path + ".lang1", data_path + ".lang2"):
-        yield example
-    else:  # For training, mix synthetic and authentic data as follows.
+      yield from text_problems.text2text_txt_iterator(f"{data_path}.lang1",
+                                                      f"{data_path}.lang2")
+    else:# For training, mix synthetic and authentic data as follows.
       for (file1, file2) in self.backtranslate_data_filenames:
         path1 = os.path.join(tmp_dir, file1)
         path2 = os.path.join(tmp_dir, file2)
         # Synthetic data first.
-        for example in text_problems.text2text_txt_iterator(path1, path2):
-          yield example
+        yield from text_problems.text2text_txt_iterator(path1, path2)
         # Now authentic data.
-        for example in text_problems.text2text_txt_iterator(
-            data_path + ".lang1", data_path + ".lang2"):
-          yield example
+        yield from text_problems.text2text_txt_iterator(f"{data_path}.lang1",
+                                                        f"{data_path}.lang2")

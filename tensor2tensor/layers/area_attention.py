@@ -40,8 +40,7 @@ def lengths_to_area_mask(feature_length, length, max_area_size):
           tf.sequence_mask(feature_length, maxlen=length)), 2), tf.float32)
   _, _, area_sum, _, _ = compute_area_features(paddings,
                                                max_area_width=max_area_size)
-  mask = tf.squeeze(tf.logical_not(tf.cast(area_sum, tf.bool)), [2])
-  return mask
+  return tf.squeeze(tf.logical_not(tf.cast(area_sum, tf.bool)), [2])
 
 
 def _pool_one_shape(features_2d, area_width, area_height, batch_size,
@@ -264,8 +263,8 @@ def compute_area_key(features, max_area_width, max_area_height=1, height=1,
       area_mean += (area_std * tf.random_normal(tf.shape(area_std)))
     return area_mean
   with tf.variable_scope(
-      name, default_name="combine_area_features",
-      values=[area_mean, area_std, area_heights, area_widths]):
+        name, default_name="combine_area_features",
+        values=[area_mean, area_std, area_heights, area_widths]):
     depth = common_layers.shape_list(area_mean)[-1]
     height_embed = tf.nn.embedding_lookup(
         params=tf.get_variable("area_height_emb",
@@ -294,12 +293,11 @@ def compute_area_key(features, max_area_width, max_area_height=1, height=1,
         area_mean += (area_std * tf.random_normal(tf.shape(area_std)))
       feature_concat = area_mean + size_embed
     else:
-      raise ValueError("Unsupported area key mode=%s" % mode)
+      raise ValueError(f"Unsupported area key mode={mode}")
     feature_hidden = tf.layers.dense(inputs=feature_concat,
                                      units=depth,
                                      activation=tf.nn.relu)
-    area_key = tf.layers.dense(feature_hidden, units=depth)
-    return area_key
+    return tf.layers.dense(feature_hidden, units=depth)
 
 
 def dot_product_area_attention(q,
@@ -361,8 +359,8 @@ def dot_product_area_attention(q,
                   area_key_mode, area_value_mode,
                   area_temperature)
   with tf.variable_scope(
-      name, default_name="dot_product_area_attention",
-      values=[q, k, v]) as scope:
+        name, default_name="dot_product_area_attention",
+        values=[q, k, v]) as scope:
     mem_shape = common_layers.shape_list(k)
     batch_size = mem_shape[0]
     head_size = mem_shape[1]
@@ -390,7 +388,7 @@ def dot_product_area_attention(q,
           tf.reshape(v, [-1, length, depth]), max_area_width=max_area_width,
           max_area_height=max_area_height, height=memory_height)
     else:
-      raise ValueError("Unsupported area value mode=%s" % area_value_mode)
+      raise ValueError(f"Unsupported area value mode={area_value_mode}")
     k = tf.reshape(k_area, [batch_size, head_size, -1, depth])
     v = tf.reshape(v_area, [batch_size, head_size, -1, depth])
     logits = tf.matmul(q, k, transpose_b=True)  # [..., length_q, length_kv]
@@ -424,7 +422,7 @@ def dot_product_area_attention(q,
       weights = tf.div(weights, tf.reduce_sum(weights, -1, keepdims=True))
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
-      save_weights_to[scope.name + "/logits"] = logits
+      save_weights_to[f"{scope.name}/logits"] = logits
     # Drop out attention links for each head.
     weights = common_layers.dropout_with_broadcast_dims(
         weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)

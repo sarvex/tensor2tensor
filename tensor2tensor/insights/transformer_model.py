@@ -152,7 +152,7 @@ class TransformerModel(query_processor.QueryProcessor):
     Returns:
       A dictionary of results with processing and graph visualizations.
     """
-    tf.logging.info("Processing new query [%s]" %query)
+    tf.logging.info(f"Processing new query [{query}]")
 
     # Create the new TFDBG hook directory.
     hook_dir = "/tmp/t2t_server_dump/request_%d" %int(time.time())
@@ -169,10 +169,9 @@ class TransformerModel(query_processor.QueryProcessor):
         input_ids.append(text_encoder.EOS_ID)
         x = [1, 100, len(input_ids)] + input_ids
         x += [0] * (self.const_array_size - len(x))
-        d = {
+        yield {
             "inputs": np.array(x).astype(np.int32),
         }
-        yield d
 
     def input_fn():
       """Generator that returns just the current query."""
@@ -230,7 +229,7 @@ class TransformerModel(query_processor.QueryProcessor):
           edge.data["label_id"] = index
           # Coerce the type to be a python bool.  Numpy bools can't be easily
           # converted to JSON.
-          edge.data["completed"] = bool(index == 1)
+          edge.data["completed"] = index == 1
 
       # Examine the score results and store the scores with the associated edges
       # in the graph.  We fetch the vertices (and relevant edges) by looking

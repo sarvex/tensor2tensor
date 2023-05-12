@@ -45,13 +45,11 @@ def layers():
     layers_module = tf.layers
   except AttributeError:
     logging.info("Cannot access tf.layers, trying TF2 layers.")
-  try:
+  with contextlib.suppress(ImportError):
     from tensorflow.python import tf2  # pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
     if tf2.enabled():
       logging.info("Running in V2 mode, using Keras layers.")
       layers_module = tf.keras.layers
-  except ImportError:
-    pass
   return layers_module
 
 
@@ -227,24 +225,21 @@ def shakeshake2_py(x, y, equal=False, individual=False):
 def shakeshake2_grad(x1, x2, dy):
   """Overriding gradient for shake-shake of 2 tensors."""
   y = shakeshake2_py(x1, x2)
-  dx = tf.gradients(ys=[y], xs=[x1, x2], grad_ys=[dy])
-  return dx
+  return tf.gradients(ys=[y], xs=[x1, x2], grad_ys=[dy])
 
 
 @function.Defun()
 def shakeshake2_indiv_grad(x1, x2, dy):
   """Overriding gradient for shake-shake of 2 tensors."""
   y = shakeshake2_py(x1, x2, individual=True)
-  dx = tf.gradients(ys=[y], xs=[x1, x2], grad_ys=[dy])
-  return dx
+  return tf.gradients(ys=[y], xs=[x1, x2], grad_ys=[dy])
 
 
 @function.Defun()
 def shakeshake2_equal_grad(x1, x2, dy):
   """Overriding gradient for shake-shake of 2 tensors."""
   y = shakeshake2_py(x1, x2, equal=True)
-  dx = tf.gradients(ys=[y], xs=[x1, x2], grad_ys=[dy])
-  return dx
+  return tf.gradients(ys=[y], xs=[x1, x2], grad_ys=[dy])
 
 
 @function.Defun(grad_func=shakeshake2_grad)
@@ -328,8 +323,7 @@ def standardize_images(x):
 def flatten4d3d(x):
   """Flatten a 4d-tensor into a 3d-tensor by joining width and height."""
   xshape = shape_list(x)
-  result = tf.reshape(x, [xshape[0], xshape[1] * xshape[2], xshape[3]])
-  return result
+  return tf.reshape(x, [xshape[0], xshape[1] * xshape[2], xshape[3]])
 
 
 # TODO(noam): remove this function after TPUs do gather faster.
@@ -426,29 +420,21 @@ def embedding(x,
 
 def shift_right(x, pad_value=None):
   """Shift the second dimension of x right by one."""
-  if pad_value is None:
-    shifted_targets = tf.pad(x, [[0, 0], [1, 0], [0, 0], [0, 0]])[:, :-1, :, :]
-  else:
-    shifted_targets = tf.concat([pad_value, x], axis=1)[:, :-1, :, :]
-  return shifted_targets
+  return (tf.pad(x, [[0, 0], [1, 0], [0, 0], [0, 0]])[:, :-1, :, :]
+          if pad_value is None else tf.concat([pad_value, x],
+                                              axis=1)[:, :-1, :, :])
 
 
 def shift_right_3d(x, pad_value=None):
   """Shift the second dimension of x right by one."""
-  if pad_value is None:
-    shifted_targets = tf.pad(x, [[0, 0], [1, 0], [0, 0]])[:, :-1, :]
-  else:
-    shifted_targets = tf.concat([pad_value, x], axis=1)[:, :-1, :]
-  return shifted_targets
+  return (tf.pad(x, [[0, 0], [1, 0], [0, 0]])[:, :-1, :] if pad_value is None
+          else tf.concat([pad_value, x], axis=1)[:, :-1, :])
 
 
 def shift_right_2d(x, pad_value=None):
   """Shift the second dimension of x right by one."""
-  if pad_value is None:
-    shifted_targets = tf.pad(x, [[0, 0], [1, 0]])[:, :-1]
-  else:
-    shifted_targets = tf.concat([pad_value, x], axis=1)[:, :-1]
-  return shifted_targets
+  return (tf.pad(x, [[0, 0], [1, 0]])[:, :-1]
+          if pad_value is None else tf.concat([pad_value, x], axis=1)[:, :-1])
 
 
 def conv_stride2_multistep(x, nbr_steps, output_filters, name=None, reuse=None):
@@ -471,19 +457,20 @@ def conv_stride2_multistep(x, nbr_steps, output_filters, name=None, reuse=None):
        output_filters]`
   """
   with tf.variable_scope(
-      name, default_name="conv_stride2_multistep", values=[x], reuse=reuse):
+        name, default_name="conv_stride2_multistep", values=[x], reuse=reuse):
     if nbr_steps == 0:
       out = conv(x, output_filters, (1, 1))
       return out, [out]
     hidden_layers = [x]
-    for i in range(nbr_steps):
-      hidden_layers.append(
-          conv(
-              hidden_layers[-1],
-              output_filters, (2, 2),
-              strides=2,
-              activation=tf.nn.relu,
-              name="conv" + str(i)))
+    hidden_layers.extend(
+        conv(
+            hidden_layers[-1],
+            output_filters,
+            (2, 2),
+            strides=2,
+            activation=tf.nn.relu,
+            name=f"conv{str(i)}",
+        ) for i in range(nbr_steps))
     return hidden_layers[-1], hidden_layers
 
 
@@ -509,26 +496,30 @@ def deconv_stride2_multistep(x,
        output_filters]`
   """
   with tf.variable_scope(
-      name, default_name="deconv_stride2_multistep", values=[x], reuse=reuse):
+        name, default_name="deconv_stride2_multistep", values=[x], reuse=reuse):
 
     def deconv1d(cur, i):
       cur_shape = shape_list(cur)
       thicker = conv(
           cur,
-          output_filters * 2, (1, 1),
+          output_filters * 2,
+          (1, 1),
           padding="SAME",
           activation=tf.nn.relu,
-          name="deconv1d" + str(i))
+          name=f"deconv1d{str(i)}",
+      )
       return tf.reshape(thicker,
                         [cur_shape[0], cur_shape[1] * 2, 1, output_filters])
 
     def deconv2d(cur, i):
       thicker = conv(
           cur,
-          output_filters * 4, (1, 1),
+          output_filters * 4,
+          (1, 1),
           padding="SAME",
           activation=tf.nn.relu,
-          name="deconv2d" + str(i))
+          name=f"deconv2d{str(i)}",
+      )
       return tf.depth_to_space(thicker, 2)
 
     cur = x
@@ -538,10 +529,7 @@ def deconv_stride2_multistep(x,
       else:
         cur_dim = shape_list(cur)[2]
         if isinstance(cur_dim, int):
-          if cur_dim == 1:
-            cur = deconv1d(cur, i)
-          else:
-            cur = deconv2d(cur, i)
+          cur = deconv1d(cur, i) if cur_dim == 1 else deconv2d(cur, i)
         else:
           cur = tf.cond(
               tf.equal(cur_dim, 1),
@@ -706,10 +694,7 @@ def layer_norm_compute(x, epsilon, scale, bias, layer_collection=None):
       tf.squared_difference(x, mean), axis=[-1], keepdims=True)
   norm_x = (x - mean) * tf.rsqrt(variance + epsilon)
 
-  output = norm_x * scale + bias
-
-
-  return output
+  return norm_x * scale + bias
 
 
 def layer_norm(x,
@@ -906,13 +891,13 @@ def layer_prepostprocess(previous_value,
     for c in sequence:
       if c == "a":
         x += previous_value
-      elif c == "z":
-        x = zero_add(previous_value, x)
       elif c == "n":
         x = apply_norm(
             x, norm_type, depth, epsilon, layer_collection=layer_collection)
+      elif c == "z":
+        x = zero_add(previous_value, x)
       else:
-        assert c == "d", ("Unknown sequence step %s" % c)
+        assert c == "d", f"Unknown sequence step {c}"
         x = dropout_with_broadcast_dims(
             x, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
     return x
@@ -1310,8 +1295,7 @@ def relu_density_logit(x, reduce_dims):
     a Tensor
   """
   frac = tf.reduce_mean(to_float(x > 0.0), reduce_dims)
-  scaled = tf.log(frac + math.exp(-10)) - tf.log((1.0 - frac) + math.exp(-10))
-  return scaled
+  return tf.log(frac + math.exp(-10)) - tf.log((1.0 - frac) + math.exp(-10))
 
 
 def maybe_zero_out_padding(inputs, kernel_size, nonpadding_mask):
@@ -1357,14 +1341,14 @@ def dense_relu_dense(inputs,
   if dropout != 0.0:
     h = dropout_with_broadcast_dims(
         h, 1.0 - dropout, broadcast_dims=dropout_broadcast_dims)
-  o = dense(
+  return dense(
       h,
       output_size,
       activation=output_activation,
       use_bias=True,
       layer_collection=layer_collection,
-      name=layer_name.format("conv2"))
-  return o
+      name=layer_name.format("conv2"),
+  )
 
 
 def dense_dropconnect(inputs,
@@ -1798,8 +1782,7 @@ def weights_concatenated(labels):
   shifted = tf.pad(sentence_num_plus_one,
                    [[0, 0], [2, 0], [0, 0], [0, 0]])[:, :-2, :, :]
   nonboilerplate = tf.equal(sentence_num_plus_one, shifted)
-  ret = to_float(tf.logical_and(nonboilerplate, in_target))
-  return ret
+  return to_float(tf.logical_and(nonboilerplate, in_target))
 
 
 def padded_cross_entropy(logits,
@@ -2017,8 +2000,7 @@ def discretized_mix_logistic_loss(pred, labels):
 
   # Sum over channels and compute log-probability of each mixture.
   log_probs = tf.reduce_sum(log_probs, -1) + tf.nn.log_softmax(logits, axis=-1)
-  output = -tf.reduce_logsumexp(log_probs, axis=-1)
-  return output
+  return -tf.reduce_logsumexp(log_probs, axis=-1)
 
 
 def sample_from_discretized_mix_logistic(pred, seed=None):
@@ -2376,7 +2358,7 @@ def fn_device_dependency_dict():
 @contextlib.contextmanager
 def fn_device_dependency(name, device=""):
   """Add control deps for name and device."""
-  key = name + "_" + device
+  key = f"{name}_{device}"
   outs = []
 
   def body():
@@ -2413,10 +2395,7 @@ def underlying_variable_ref(t):
     t = t.op.inputs[0]
 
   op_type = t.op.type
-  if "Variable" in op_type or "VarHandle" in op_type:
-    return t
-  else:
-    return None
+  return t if "Variable" in op_type or "VarHandle" in op_type else None
 
 
 def underlying_variable(t):
@@ -2686,13 +2665,13 @@ def _fn_with_custom_grad(fn, inputs, grad_fn, use_global_vars=False):
   var_types = [t.dtype for t in train_vars]
 
   @function.Defun(
-      *(in_types + var_types + out_types),
-      func_name="identity_custom_grad%d" % ops.uid(),
-      python_grad_func=custom_grad_fn,
-      shape_func=lambda _: [t.get_shape() for t in outputs])
+        *(in_types + var_types + out_types),
+        func_name="identity_custom_grad%d" % ops.uid(),
+        python_grad_func=custom_grad_fn,
+        shape_func=lambda _: [t.get_shape() for t in outputs])
   def identity(*args):
     _, _, outs = contrib.framework().nest.pack_sequence_as(defun_inputs, args)
-    return tuple([tf.identity(t) for t in outs])
+    return tuple(tf.identity(t) for t in outs)
 
   flat_inputs = contrib.framework().nest.flatten(defun_inputs)
   id_out = identity(*flat_inputs)
@@ -2746,7 +2725,7 @@ def conv_hidden_relu_memory_efficient(x,
     y = tf.reshape(y, shape_list(x))
     return y
 
-  key = ("conv_hidden_relu_memory_efficient %s" % epsilon)
+  key = f"conv_hidden_relu_memory_efficient {epsilon}"
   if not forget:
     forward_fn = forward_internal
   elif key in _function_cache:
@@ -2937,7 +2916,7 @@ def ones_matrix_band_part(rows, cols, num_lower, num_upper, out_shape=None):
   Returns:
     Tensor of size rows * cols reshaped into shape out_shape.
   """
-  if all([isinstance(el, int) for el in [rows, cols, num_lower, num_upper]]):
+  if all(isinstance(el, int) for el in [rows, cols, num_lower, num_upper]):
     # Needed info is constant, so we construct in numpy
     if num_lower < 0:
       num_lower = rows - 1
@@ -3036,9 +3015,8 @@ def dense(x, units, **kwargs):
     layer_name = tf.get_variable_scope().name
     if (not layer_name) or ("name" not in kwargs):
       raise ValueError(
-          "Variable scope and layer name cannot be empty. Actual: "
-          "variable_scope={}, layer name={}".format(
-              layer_name, kwargs.get("name", None)))
+          f'Variable scope and layer name cannot be empty. Actual: variable_scope={layer_name}, layer name={kwargs.get("name", None)}'
+      )
 
     layer_name += "/" + kwargs["name"]
     layer_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
@@ -3048,8 +3026,7 @@ def dense(x, units, **kwargs):
       layer_params = layer_params[0]
 
     tf.logging.info(
-        "Registering dense layer to collection for tensor: {}".format(
-            layer_params))
+        f"Registering dense layer to collection for tensor: {layer_params}")
 
     x_shape = x.shape.as_list()
     if len(x_shape) == 3:
@@ -3166,14 +3143,12 @@ def mix(x1,
     if max_prob < 1.0:
       return get_res()
 
-    # Prevent sampling after steps is passed to speed it up.
     if is_xla_compiled():
       return get_res()
-    else:
-      cur_step = tf.train.get_global_step()
-      if cur_step is None:
-        return x1  # Step not available, probably eval mode, don't mix.
-      return tf.cond(tf.less(cur_step, steps), get_res, lambda: x1)
+    cur_step = tf.train.get_global_step()
+    if cur_step is None:
+      return x1  # Step not available, probably eval mode, don't mix.
+    return tf.cond(tf.less(cur_step, steps), get_res, lambda: x1)
 
 
 def brelu(x):
@@ -3349,9 +3324,7 @@ def index_last_dim_with_indices(x, indices):
       axis=1)
   flat_x_idx = tf.gather_nd(flat_x, idx)
 
-  x_idx = tf.reshape(flat_x_idx, x_shape[:-1])
-
-  return x_idx
+  return tf.reshape(flat_x_idx, x_shape[:-1])
 
 
 def should_generate_summaries():
@@ -3364,10 +3337,7 @@ def should_generate_summaries():
   if name_scope and "while/" in name_scope:
     # Summaries don't work well within tf.while_loop()
     return False
-  if tf.get_variable_scope().reuse:
-    # Avoid generating separate summaries for different data shards
-    return False
-  return True
+  return not tf.get_variable_scope().reuse
 
 
 def reshape_like(a, b):
@@ -3389,9 +3359,10 @@ def summarize_video(video, prefix, max_outputs=1):
     return
   if video.get_shape().as_list()[1] is None:
     tf.summary.image(
-        "%s_last_frame" % prefix,
+        f"{prefix}_last_frame",
         tf.cast(video[:, -1, :, :, :], tf.uint8),
-        max_outputs=max_outputs)
+        max_outputs=max_outputs,
+    )
   else:
     for k in range(video_shape[1]):
       tf.summary.image(
@@ -3411,10 +3382,8 @@ def cast_like(x, y):
   cast_x = tf.cast(x, y.dtype)
   if cast_x.device != x.device:
     x_name = "(eager Tensor)"
-    try:
+    with contextlib.suppress(AttributeError):
       x_name = x.name
-    except AttributeError:
-      pass
     tf.logging.warning("Cast for %s may induce copy from '%s' to '%s'", x_name,
                        x.device, cast_x.device)
   return cast_x
@@ -3430,9 +3399,9 @@ def make_even_size(x):
     new_shape[1] = 2 * int(math.ceil(x_shape[1] * 0.5))
   if x_shape[2] is not None:
     new_shape[2] = 2 * int(math.ceil(x_shape[2] * 0.5))
-  if shape[1] % 2 == 0 and shape[2] % 2 == 0:
-    return x
   if shape[1] % 2 == 0:
+    if shape[2] % 2 == 0:
+      return x
     x, _ = pad_to_same_length(x, x, final_length_divisible_by=2, axis=2)
     x.set_shape(new_shape)
     return x
@@ -3514,9 +3483,7 @@ def sliced_gan_loss(input1,
     proj1 = get_sorted_projections(logits1)
     proj2 = get_sorted_projections(logits2)
     dist = tf.reduce_mean(tf.squared_difference(proj1, proj2))
-    if return_logits:
-      return dist, logits1, logits2
-    return dist
+    return (dist, logits1, logits2) if return_logits else dist
 
 
 def lrelu(input_, leak=0.2, name="lrelu"):
@@ -3572,9 +3539,7 @@ def instance_norm(x):
         initializer=tf.truncated_normal_initializer(mean=1.0, stddev=0.02))
     offset = tf.get_variable(
         "offset", [x.get_shape()[-1]], initializer=tf.constant_initializer(0.0))
-    out = scale * tf.div(x - mean, tf.sqrt(var + epsilon)) + offset
-
-    return out
+    return scale * tf.div(x - mean, tf.sqrt(var + epsilon)) + offset
 
 
 def general_conv(x,
@@ -3603,11 +3568,7 @@ def general_conv(x,
       x = instance_norm(x)
 
     if do_relu:
-      if relufactor == 0:
-        x = tf.nn.relu(x, "relu")
-      else:
-        x = lrelu(x, leak=relufactor)
-
+      x = tf.nn.relu(x, "relu") if relufactor == 0 else lrelu(x, leak=relufactor)
     return x
 
 
@@ -3762,7 +3723,7 @@ def cyclegan_upsample(net, num_outputs, stride, method="conv2d_transpose"):
           num_outputs, (3, 3), strides=stride, activation=tf.nn.relu)(net)
       net = net[:, 1:, 1:, :]
     else:
-      raise ValueError("Unknown method: [%s]" % method)
+      raise ValueError(f"Unknown method: [{method}]")
 
     return net
 
@@ -4081,8 +4042,7 @@ class WeightNorm(tf.keras.layers.Wrapper):
     #     self._data_dep_init(inputs)
     self._compute_weights()  # Recompute weights for each forward pass
 
-    output = self.layer.call(inputs)
-    return output
+    return self.layer.call(inputs)
 
   def compute_output_shape(self, input_shape):
     return tf.TensorShape(

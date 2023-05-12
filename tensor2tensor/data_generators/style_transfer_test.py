@@ -34,8 +34,8 @@ class StyleTransferProblemShakespeareTest(tf.test.TestCase):
         modern_to_shakespeare_data_gen.source_target_paths(
             problem.DatasetSplit.TRAIN, tmp_dir))
 
-    expected_source = "{}/train.modern".format(tmp_dir)
-    expected_target = "{}/train.original".format(tmp_dir)
+    expected_source = f"{tmp_dir}/train.modern"
+    expected_target = f"{tmp_dir}/train.original"
 
     self.assertEqual(actual_source, expected_source)
     self.assertEqual(actual_target, expected_target)
@@ -48,8 +48,8 @@ class StyleTransferProblemShakespeareTest(tf.test.TestCase):
         shakespeare_to_modern_data_gen.source_target_paths(
             problem.DatasetSplit.TRAIN, tmp_dir))
 
-    expected_source = "{}/train.original".format(tmp_dir)
-    expected_target = "{}/train.modern".format(tmp_dir)
+    expected_source = f"{tmp_dir}/train.original"
+    expected_target = f"{tmp_dir}/train.modern"
 
     self.assertEqual(actual_source, expected_source)
     self.assertEqual(actual_target, expected_target)
@@ -62,8 +62,8 @@ class StyleTransferProblemShakespeareTest(tf.test.TestCase):
         modern_to_shakespeare_data_gen.source_target_paths(
             problem.DatasetSplit.EVAL, tmp_dir))
 
-    expected_source = "{}/dev.modern".format(tmp_dir)
-    expected_target = "{}/dev.original".format(tmp_dir)
+    expected_source = f"{tmp_dir}/dev.modern"
+    expected_target = f"{tmp_dir}/dev.original"
 
     self.assertEqual(actual_source, expected_source)
     self.assertEqual(actual_target, expected_target)
@@ -76,8 +76,8 @@ class StyleTransferProblemShakespeareTest(tf.test.TestCase):
         shakespeare_to_modern_data_gen.source_target_paths(
             problem.DatasetSplit.EVAL, tmp_dir))
 
-    expected_source = "{}/dev.original".format(tmp_dir)
-    expected_target = "{}/dev.modern".format(tmp_dir)
+    expected_source = f"{tmp_dir}/dev.original"
+    expected_target = f"{tmp_dir}/dev.modern"
 
     self.assertEqual(actual_source, expected_source)
     self.assertEqual(actual_target, expected_target)

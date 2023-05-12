@@ -69,9 +69,9 @@ class QuestionNLI(text_problems.TextConcat2ClassProblem):
     return ["not_entailment", "entailment"]
 
   def _maybe_download_corpora(self, tmp_dir):
-    qnli_filename = "QNLI.zip"
     qnli_finalpath = os.path.join(tmp_dir, "QNLI")
     if not tf.gfile.Exists(qnli_finalpath):
+      qnli_filename = "QNLI.zip"
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, qnli_filename, self._QNLI_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -101,8 +101,7 @@ class QuestionNLI(text_problems.TextConcat2ClassProblem):
       filesplit = "dev.tsv"
 
     filename = os.path.join(qnli_dir, filesplit)
-    for example in self.example_generator(filename):
-      yield example
+    yield from self.example_generator(filename)
 
 
 @registry.register_problem

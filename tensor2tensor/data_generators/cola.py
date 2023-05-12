@@ -69,9 +69,9 @@ class Cola(text_problems.Text2ClassProblem):
     return ["unacceptable", "acceptable"]
 
   def _maybe_download_corpora(self, tmp_dir):
-    cola_filename = "CoLA.zip"
     cola_finalpath = os.path.join(tmp_dir, "CoLA")
     if not tf.gfile.Exists(cola_finalpath):
+      cola_filename = "CoLA.zip"
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, cola_filename, self._COLA_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -97,8 +97,7 @@ class Cola(text_problems.Text2ClassProblem):
       filesplit = "dev.tsv"
 
     filename = os.path.join(cola_dir, filesplit)
-    for example in self.example_generator(filename):
-      yield example
+    yield from self.example_generator(filename)
 
 
 @registry.register_problem

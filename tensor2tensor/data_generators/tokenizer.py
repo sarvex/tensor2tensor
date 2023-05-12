@@ -40,6 +40,7 @@ e.g.  u"Dude - that's so cool."
         -> [u"Dude", u" - ", u"that", u"'", u"s", u"so", u"cool", u"."]
 """
 
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -57,10 +58,12 @@ _native_to_unicode = (lambda s: s.decode("utf-8")) if six.PY2 else (lambda s: s)
 
 
 # This set contains all letter and number characters.
-_ALPHANUMERIC_CHAR_SET = set(
-    six.unichr(i) for i in range(sys.maxunicode)
-    if (unicodedata.category(six.unichr(i)).startswith("L") or
-        unicodedata.category(six.unichr(i)).startswith("N")))
+_ALPHANUMERIC_CHAR_SET = {
+    six.unichr(i)
+    for i in range(sys.maxunicode)
+    if (unicodedata.category(six.unichr(i)).startswith("L")
+        or unicodedata.category(six.unichr(i)).startswith("N"))
+}
 
 
 def encode(text):
@@ -130,19 +133,18 @@ def _read_filepattern(filepattern, max_lines=None, split_on_newlines=True):
           if max_lines and lines_read >= max_lines:
             return
 
-      else:
-        if max_lines:
-          doc = []
-          for line in f:
-            doc.append(line)
-            lines_read += 1
-            if max_lines and lines_read >= max_lines:
-              yield "".join(doc)
-              return
-          yield "".join(doc)
+      elif max_lines:
+        doc = []
+        for line in f:
+          doc.append(line)
+          lines_read += 1
+          if max_lines and lines_read >= max_lines:
+            yield "".join(doc)
+            return
+        yield "".join(doc)
 
-        else:
-          yield f.read()
+      else:
+        yield f.read()
 
 
 def corpus_token_counts(
@@ -164,7 +166,7 @@ def corpus_token_counts(
       text_filepattern,
       max_lines=corpus_max_lines,
       split_on_newlines=split_on_newlines):
-    counts.update(encode(_native_to_unicode(doc)))
+    counts |= encode(_native_to_unicode(doc))
 
   mlperf_log.transformer_print(
       key=mlperf_log.PREPROC_VOCAB_SIZE, value=len(counts))

@@ -73,8 +73,7 @@ class ImageLsunBedrooms(image_utils.ImageProblem):
     zip_ref.close()
 
     print("Opening database.")
-    data_file = os.path.join(tmp_dir,
-                             "%s_%s_lmdb/data.mdb" % (category, split_name))
+    data_file = os.path.join(tmp_dir, f"{category}_{split_name}_lmdb/data.mdb")
 
     filename_queue = tf.train.string_input_producer([data_file], num_epochs=1)
     reader = tf.LMDBReader()

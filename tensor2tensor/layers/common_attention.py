@@ -60,9 +60,7 @@ def large_compatible_negative(tensor_type):
   Returns:
     a large negative number.
   """
-  if tensor_type == tf.float16:
-    return tf.float16.min
-  return -1e9
+  return tf.float16.min if tensor_type == tf.float16 else -1e9
 
 
 def mixed_precision_is_enabled(
@@ -554,9 +552,7 @@ def get_layer_timing_signal_sinusoid_1d(channels, layer, num_layers):
   """
 
   signal = get_timing_signal_1d(num_layers, channels)
-  layer_signal = tf.expand_dims(signal[:, layer, :], axis=1)
-
-  return layer_signal
+  return tf.expand_dims(signal[:, layer, :], axis=1)
 
 
 @expert_utils.add_name_scope()
@@ -753,15 +749,14 @@ def add_positional_embedding(x, max_length, name=None, positions=None):
   with tf.name_scope("add_positional_embedding"):
     _, length, depth = common_layers.shape_list(x)
     var = tf.cast(tf.get_variable(name, [max_length, depth]), x.dtype)
-    if positions is None:
-      pad_length = tf.maximum(0, length - max_length)
-      sliced = tf.cond(
-          tf.less(length, max_length),
-          lambda: tf.slice(var, [0, 0], [length, -1]),
-          lambda: tf.pad(var, [[0, pad_length], [0, 0]]))
-      return x + tf.expand_dims(sliced, 0)
-    else:
+    if positions is not None:
       return x + tf.gather(var, tf.to_int32(positions))
+    pad_length = tf.maximum(0, length - max_length)
+    sliced = tf.cond(
+        tf.less(length, max_length),
+        lambda: tf.slice(var, [0, 0], [length, -1]),
+        lambda: tf.pad(var, [[0, pad_length], [0, 0]]))
+    return x + tf.expand_dims(sliced, 0)
 
 
 def add_positional_embedding_nd(x, max_length, name=None):
@@ -1644,7 +1639,7 @@ def dot_product_attention(q,
     Tensor with shape [..., length_q, depth_v].
   """
   with tf.variable_scope(
-      name, default_name="dot_product_attention", values=[q, k, v]) as scope:
+        name, default_name="dot_product_attention", values=[q, k, v]) as scope:
     logits = tf.matmul(q, k, transpose_b=True)  # [..., length_q, length_kv]
     if bias is not None:
       bias = common_layers.cast_like(bias, logits)
@@ -1658,7 +1653,7 @@ def dot_product_attention(q,
     weights = common_layers.cast_like(weights, q)
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
-      save_weights_to[scope.name + "/logits"] = logits
+      save_weights_to[f"{scope.name}/logits"] = logits
     # Drop out attention links for each head.
     weights = common_layers.dropout_with_broadcast_dims(
         weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
@@ -1682,10 +1677,7 @@ def _generate_relative_positions_matrix(length_q, length_k,
     distance_mat = tf.expand_dims(tf.range(-length_k+1, 1, 1), 0)
   distance_mat_clipped = tf.clip_by_value(distance_mat, -max_relative_position,
                                           max_relative_position)
-  # Shift values to be >= 0. Each integer still uniquely identifies a relative
-  # position difference.
-  final_mat = distance_mat_clipped + max_relative_position
-  return final_mat
+  return distance_mat_clipped + max_relative_position
 
 
 def _generate_relative_positions_embeddings(length_q, length_k, depth,
@@ -1698,8 +1690,7 @@ def _generate_relative_positions_embeddings(length_q, length_k, depth,
     vocab_size = max_relative_position * 2 + 1
     # Generates embedding for each relative position of dimension depth.
     embeddings_table = tf.get_variable("embeddings", [vocab_size, depth])
-    embeddings = tf.gather(embeddings_table, relative_positions_matrix)
-    return embeddings
+    return tf.gather(embeddings_table, relative_positions_matrix)
 
 
 def _relative_attention_inner(x, y, z, transpose):
@@ -1788,8 +1779,8 @@ def dot_product_attention_relative(q,
     raise ValueError("Max relative position (%s) should be > 0 when using "
                      "relative self attention." % (max_relative_position))
   with tf.variable_scope(
-      name, default_name="dot_product_attention_relative",
-      values=[q, k, v]) as scope:
+        name, default_name="dot_product_attention_relative",
+        values=[q, k, v]) as scope:
 
     # This calculation only works for self attention.
     # q, k and v must therefore have the same shape, unless memory is enabled.
@@ -1818,7 +1809,7 @@ def dot_product_attention_relative(q,
                                          gumbel_noise_weight)
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
-      save_weights_to[scope.name + "/logits"] = logits
+      save_weights_to[f"{scope.name}/logits"] = logits
     weights = tf.nn.dropout(weights, 1.0 - dropout_rate)
     if (not tf.get_variable_scope().reuse and
         common_layers.should_generate_summaries() and
@@ -1918,17 +1909,17 @@ def get_relative_embeddings_left(max_relative_position, length, depth,
     padded_relative_embeddings = tf.pad(
         relative_embeddings,
         [[pad_length, 0], [0, 0]])
-    used_relative_embeddings = tf.slice(
-        padded_relative_embeddings,
-        [start_slice_position, 0], [length, -1])
+    return tf.slice(padded_relative_embeddings, [start_slice_position, 0],
+                    [length, -1])
   else:
     padded_relative_embeddings = tf.pad(
         relative_embeddings,
         [[0, 0], [pad_length, 0], [0, 0]])
-    used_relative_embeddings = tf.slice(
+    return tf.slice(
         padded_relative_embeddings,
-        [0, start_slice_position, 0], [-1, length, -1])
-  return used_relative_embeddings
+        [0, start_slice_position, 0],
+        [-1, length, -1],
+    )
 
 
 def dot_product_self_attention_relative_v2(q,
@@ -1983,9 +1974,9 @@ def dot_product_self_attention_relative_v2(q,
     raise ValueError("Max relative position (%s) should be > 0 when using "
                      "relative self attention." % (max_relative_position))
   with tf.variable_scope(
-      name,
-      default_name="dot_product_self_attention_relative_v2",
-      values=[q, k, v]) as scope:
+        name,
+        default_name="dot_product_self_attention_relative_v2",
+        values=[q, k, v]) as scope:
 
     # This calculation only works for self attention.
     # q, k and v must therefore have the same shape.
@@ -2012,7 +2003,7 @@ def dot_product_self_attention_relative_v2(q,
     weights = tf.nn.softmax(logits, name="attention_weights")
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
-      save_weights_to[scope.name + "/logits"] = logits
+      save_weights_to[f"{scope.name}/logits"] = logits
     # Dropping out the attention links for each of the heads.
     weights = common_layers.dropout_with_broadcast_dims(
         weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
@@ -2102,17 +2093,20 @@ def get_relative_embeddings_left_right(max_relative_position, length, depth,
     padded_relative_embeddings = tf.pad(
         relative_embeddings,
         [[pad_length, pad_length], [0, 0]])
-    used_relative_embeddings = tf.slice(
+    return tf.slice(
         padded_relative_embeddings,
-        [slice_start_position, 0], [2 * length - 1, -1])
+        [slice_start_position, 0],
+        [2 * length - 1, -1],
+    )
   else:
     padded_relative_embeddings = tf.pad(
         relative_embeddings,
         [[0, 0], [pad_length, pad_length], [0, 0]])
-    used_relative_embeddings = tf.slice(
+    return tf.slice(
         padded_relative_embeddings,
-        [0, slice_start_position, 0], [-1, 2 * length - 1, -1])
-  return used_relative_embeddings
+        [0, slice_start_position, 0],
+        [-1, 2 * length - 1, -1],
+    )
 
 
 def dot_product_unmasked_self_attention_relative_v2(
@@ -2158,9 +2152,9 @@ def dot_product_unmasked_self_attention_relative_v2(
                      "relative self attention." % (max_relative_position))
 
   with tf.variable_scope(
-      name,
-      default_name="dot_product_unmasked_self_attention_relative_v2",
-      values=[q, k, v]) as scope:
+        name,
+        default_name="dot_product_unmasked_self_attention_relative_v2",
+        values=[q, k, v]) as scope:
 
     # This calculation only works for self attention.
     # q, k and v must therefore have the same shape.
@@ -2190,7 +2184,7 @@ def dot_product_unmasked_self_attention_relative_v2(
     weights = tf.nn.softmax(logits, name="attention_weights")
     if save_weights_to is not None:
       save_weights_to[scope.name] = weights
-      save_weights_to[scope.name + "/logits"] = logits
+      save_weights_to[f"{scope.name}/logits"] = logits
     # dropping out the attention links for each of the heads
     weights = common_layers.dropout_with_broadcast_dims(
         weights, 1.0 - dropout_rate, broadcast_dims=dropout_broadcast_dims)
@@ -2215,11 +2209,8 @@ def dot_product_unmasked_self_attention_relative_v2(
 
 def _matmul_with_relative_keys_2d(x, y, heads_share_relative_embedding):
   """Helper function for dot_product_unmasked_self_attention_relative_2d."""
-  if heads_share_relative_embedding:
-    ret = tf.einsum("bhxyd,md->bhxym", x, y)
-  else:
-    ret = tf.einsum("bhxyd,hmd->bhxym", x, y)
-  return ret
+  return (tf.einsum("bhxyd,md->bhxym", x, y) if heads_share_relative_embedding
+          else tf.einsum("bhxyd,hmd->bhxym", x, y))
 
 
 def dot_product_unmasked_self_attention_relative_2d(
@@ -2836,8 +2827,7 @@ def _relative_position_to_absolute_position_unmasked(x):
   # Reshape and slice out the padded elements.
   final_x = tf.reshape(flat_x_padded, [batch, heads, length+1, 2*length-1])
   final_x = final_x[:, :, :, length-1:]
-  final_x = final_x[:, :, :length, :]
-  return final_x
+  return final_x[:, :, :length, :]
 
 
 def masked_local_attention_1d(q,
@@ -3006,8 +2996,8 @@ def masked_relative_local_attention_1d(q,
   # Reuse flag is set to auto_reuse to reuse relative embeddings of keys and
   # values across blocks (first and tail blocks).
   with tf.variable_scope(
-      name, default_name="masked_relative_local_attention_1d",
-      values=[q, k, v], reuse=tf.AUTO_REUSE):
+        name, default_name="masked_relative_local_attention_1d",
+        values=[q, k, v], reuse=tf.AUTO_REUSE):
 
     default_block_length = block_length
     batch = common_layers.shape_list(q)[0]
@@ -3085,6 +3075,7 @@ def masked_relative_local_attention_1d(q,
       x = tf.reshape(x, [batch*x_shape[2], heads, x_shape[3],
                          x_shape[4]])
       return x
+
     rel_tail_q = _reshape_for_relative(tail_q)
     rel_k = _reshape_for_relative(local_k)
     rel_v = _reshape_for_relative(local_v)
@@ -3148,10 +3139,7 @@ def masked_relative_local_attention_1d(q,
       # [batch (*num_blocks), heads, query length, key length]
       rel_weights = tf.concat(
           [rel_weights_unmasked, rel_weights_masked], axis=3)
-      if heads_share_relative_embedding:
-        value_rel_embeddings_concat_axis = 0
-      else:
-        value_rel_embeddings_concat_axis = 1
+      value_rel_embeddings_concat_axis = 0 if heads_share_relative_embedding else 1
       value_rel_embeddings = tf.concat(
           [value_rel_embeddings_unmasked, value_rel_embeddings_masked],
           axis=value_rel_embeddings_concat_axis)
@@ -3173,19 +3161,13 @@ def masked_relative_local_attention_1d(q,
 
 
 def matmul_with_relative_values(x, y, heads_share_relative_embedding):
-  if heads_share_relative_embedding:
-    ret = tf.einsum("bhlm,md->bhld", x, y)
-  else:
-    ret = tf.einsum("bhlm,hmd->bhld", x, y)
-  return ret
+  return (tf.einsum("bhlm,md->bhld", x, y) if heads_share_relative_embedding
+          else tf.einsum("bhlm,hmd->bhld", x, y))
 
 
 def matmul_with_relative_keys(x, y, heads_share_relative_embedding):
-  if heads_share_relative_embedding:
-    ret = tf.einsum("bhld,md->bhlm", x, y)
-  else:
-    ret = tf.einsum("bhld,hmd->bhlm", x, y)
-  return ret
+  return (tf.einsum("bhld,md->bhlm", x, y) if heads_share_relative_embedding
+          else tf.einsum("bhld,hmd->bhlm", x, y))
 
 
 def local_attention_1d(q, k, v, block_length=128, filter_width=100, name=None):
@@ -3737,7 +3719,7 @@ def gather_indices_2d(x, block_shape, block_stride):
       padding="VALID")
   # making indices [num_blocks, dim] to gather
   dims = common_layers.shape_list(indices)[:3]
-  if all([isinstance(dim, int) for dim in dims]):
+  if all(isinstance(dim, int) for dim in dims):
     num_blocks = functools.reduce(operator.mul, dims, 1)
   else:
     num_blocks = tf.reduce_prod(dims)
@@ -4042,7 +4024,7 @@ def masked_local_attention_nd(q,
     a [batch, head, d1, d2, ..., dn, depth_v] tensor or
       [batch, head, 1, 1, ..., 1, depth_v] if decode_step is not None.
   """
-  assert all([m % b == 0 for m, b in zip(memory_flange, query_shape)])
+  assert all(m % b == 0 for m, b in zip(memory_flange, query_shape))
   with tf.variable_scope(
       name, default_name="masked_local_attention_nd", values=[q, k, v]):
     # This computation only applies to self attention, so assert q, k and v have
@@ -4210,7 +4192,7 @@ def break_into_memory_blocks_nd(x, query_shape, memory_flange, masked=False):
       is the memory block size in dimension i which is equal to q[i] + 2m[i] or
       q[i] + m[i] if masked attention and i = 1.
   """
-  assert all([m % b == 0 for b, m in zip(query_shape, memory_flange)])
+  assert all(m % b == 0 for b, m in zip(query_shape, memory_flange))
 
   original_x_shape = common_layers.shape_list(x)
   # calculate the total number of query blocks in each dimension
@@ -4230,11 +4212,7 @@ def break_into_memory_blocks_nd(x, query_shape, memory_flange, masked=False):
   # stitch query blocks together to form memory blocks of the desired size.
   start_indices_per_dimension = []
   for dimension, blocks in enumerate(blocks_in_memory_flange):
-    if masked and dimension == 0:
-      # num blocks for first dimension in masked mode is blocks + 1
-      size = blocks + 1
-    else:
-      size = 2 * blocks + 1
+    size = blocks + 1 if masked and dimension == 0 else 2 * blocks + 1
     start_indices_per_dimension.append(range(size))
 
   slices = []
@@ -4258,7 +4236,7 @@ def break_into_blocks_nd(x, block_shape):
     a [batch, d1//block1, ..., dn//blockn, block1 *... * blockn, depth] tensor
   """
   x_shape = common_layers.shape_list(x)
-  assert all([l % b == 0 for l, b in zip(x_shape[1:], block_shape)])
+  assert all(l % b == 0 for l, b in zip(x_shape[1:], block_shape))
   blocks_per_dimension = [l // b for l, b in zip(x_shape[1:], block_shape)]
   # reshape to [-1, d1 // block1, block1, ..., dn // blockn, blockn, depth]
   reshape_to = list(
@@ -4328,7 +4306,7 @@ def causal_attention_bias_nd(query_shape, memory_flange, decode_step=None):
     a [1, 1, query_items, memory_items] tensor for masked attention bias or
     a [1, 1, 1, memory_items] tensor if decode_step is not None.
   """
-  assert all([m % q == 0 for q, m in zip(query_shape, memory_flange)])
+  assert all(m % q == 0 for q, m in zip(query_shape, memory_flange))
   blocks_per_memory_flange = [
       m // q for q, m in zip(query_shape, memory_flange)
   ]
@@ -4390,12 +4368,11 @@ def compute_attention_component(antecedent,
   Returns:
     c : [batch, length, depth] tensor
   """
-  if layer_collection is not None:
-    if filter_width != 1 or vars_3d_num_heads != 0:
-      raise ValueError(
-          "KFAC implementation only supports filter_width=1 (actual: {}) and "
-          "vars_3d_num_heads=0 (actual: {}).".format(
-              filter_width, vars_3d_num_heads))
+  if layer_collection is not None and (filter_width != 1
+                                       or vars_3d_num_heads != 0):
+    raise ValueError(
+        f"KFAC implementation only supports filter_width=1 (actual: {filter_width}) and vars_3d_num_heads=0 (actual: {vars_3d_num_heads})."
+    )
   if vars_3d_num_heads is not None and vars_3d_num_heads > 0:
     assert filter_width == 1
     input_depth = antecedent.get_shape().as_list()[-1]

@@ -69,9 +69,9 @@ class RTE(text_problems.TextConcat2ClassProblem):
     return ["not_entailment", "entailment"]
 
   def _maybe_download_corpora(self, tmp_dir):
-    rte_filename = "RTE.zip"
     rte_finalpath = os.path.join(tmp_dir, "RTE")
     if not tf.gfile.Exists(rte_finalpath):
+      rte_filename = "RTE.zip"
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, rte_filename, self._RTE_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -101,8 +101,7 @@ class RTE(text_problems.TextConcat2ClassProblem):
       filesplit = "dev.tsv"
 
     filename = os.path.join(rte_dir, filesplit)
-    for example in self.example_generator(filename):
-      yield example
+    yield from self.example_generator(filename)
 
 
 @registry.register_problem

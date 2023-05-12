@@ -68,77 +68,73 @@ class DialogDailydialog16k(dialog_abstract.DialogAbstract):
 
     # Open the 6 files.
     trainsource, traintarget, devsource, devtarget, testsource, testtarget = \
-        self.open_6_files()
+          self.open_6_files()
 
-    # Open the raw data.
-    dialogs = open(
-        os.path.join(self._raw_data, 'dialogues_text.txt'), errors='ignore')
+    with open(
+        os.path.join(self._raw_data, 'dialogues_text.txt'), errors='ignore') as dialogs:
+      vocabulary = collections.Counter()
+      number_of_dialogs = 0
+      line_counter = 0
+      dataset_split_counter = 0
+        # Iterate through the file.
+      for dialog in dialogs:
+        dataset_split_counter += 1
+        if number_of_dialogs % 1000 == 0:
+          print(f'problem_log: Parsed {str(number_of_dialogs)} dialogs.')
 
-    vocabulary = collections.Counter()
-    number_of_dialogs = 0
-    line_counter = 0
-    dataset_split_counter = 0
-    # Iterate through the file.
-    for dialog in dialogs:
-      dataset_split_counter += 1
-      if number_of_dialogs % 1000 == 0:
-        print('problem_log: Parsed ' + str(number_of_dialogs) + ' dialogs.')
+        # Utterances are separated by the __eou__ token.
+        utterances = dialog.split('__eou__')[:-1]
 
-      # Utterances are separated by the __eou__ token.
-      utterances = dialog.split('__eou__')[:-1]
-
-      # Check which file we should write to.
-      if dataset_split_counter <= self.dataset_split['train']:
-        source_file = trainsource
-        target_file = traintarget
-      elif dataset_split_counter <= (self.dataset_split['train'] +
-                                     self.dataset_split['val']):
-        source_file = devsource
-        target_file = devtarget
-      else:
-        source_file = testsource
-        target_file = testtarget
-
-      # Clean the utterances.
-      i = 0
-      for utterance in utterances:
-        line_counter += 1
-        utterance = self.clean_line(utterance.lower())
-        i += 1
-
-        # Build vocabulary.
+        # Check which file we should write to.
         if dataset_split_counter <= self.dataset_split['train']:
-          words = utterance.split()
-          for word in words:
-            if word in vocabulary:
-              vocabulary[word] += 1
-            else:
-              vocabulary[word] = 1
+          source_file = trainsource
+          target_file = traintarget
+        elif dataset_split_counter <= (self.dataset_split['train'] +
+                                       self.dataset_split['val']):
+          source_file = devsource
+          target_file = devtarget
+        else:
+          source_file = testsource
+          target_file = testtarget
 
-        # Write to files.
-        if i != len(utterances):
-          source_file.write(utterance + '\n')
-        if i != 1:
-          target_file.write(utterance + '\n')
+        # Clean the utterances.
+        i = 0
+        for utterance in utterances:
+          line_counter += 1
+          utterance = self.clean_line(utterance.lower())
+          i += 1
 
-      number_of_dialogs += 1
-      # Reset the split counter if we reached 100%.
-      if dataset_split_counter == 100:
-        dataset_split_counter = 0
+          # Build vocabulary.
+          if dataset_split_counter <= self.dataset_split['train']:
+            words = utterance.split()
+            for word in words:
+              if word in vocabulary:
+                vocabulary[word] += 1
+              else:
+                vocabulary[word] = 1
 
-      # Check if we reached the desired dataset size.
-      if (self.targeted_dataset_size != 0 and
-          self.targeted_dataset_size < line_counter):
-        break
+          # Write to files.
+          if i != len(utterances):
+            source_file.write(utterance + '\n')
+          if i != 1:
+            target_file.write(utterance + '\n')
 
-    # Close the files.
-    self.close_n_files([trainsource,
-                        traintarget,
-                        devsource,
-                        devtarget,
-                        testsource,
-                        testtarget])
-    dialogs.close()
+        number_of_dialogs += 1
+        # Reset the split counter if we reached 100%.
+        if dataset_split_counter == 100:
+          dataset_split_counter = 0
 
+        # Check if we reached the desired dataset size.
+        if (self.targeted_dataset_size != 0 and
+            self.targeted_dataset_size < line_counter):
+          break
+
+      # Close the files.
+      self.close_n_files([trainsource,
+                          traintarget,
+                          devsource,
+                          devtarget,
+                          testsource,
+                          testtarget])
     # Save the vocabulary.
     self.save_vocab(vocabulary)

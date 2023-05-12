@@ -35,8 +35,8 @@ class CommonVoiceTest(tf.test.TestCase):
     self.assertEqual(1, len(output))
 
     # NOTE: No header.
-    self.assertTrue("my_media" == output[0][0])
-    self.assertTrue("my_label" == output[0][2])
+    self.assertTrue(output[0][0] == "my_media")
+    self.assertTrue(output[0][2] == "my_label")
 
 
 if __name__ == "__main__":

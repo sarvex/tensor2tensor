@@ -23,6 +23,7 @@ Based on he main paper, predicting verb's number can be done in two setups:
 
 """
 
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -42,8 +43,8 @@ from tensor2tensor.utils import registry
 import tensorflow.compat.v1 as tf
 
 _FILE_NAME = 'agr_50_mostcommon_10K'
-_TAR = _FILE_NAME + '.tsv.gz'
-_URL = 'http://tallinzen.net/media/rnn_agreement/' + _TAR
+_TAR = f'{_FILE_NAME}.tsv.gz'
+_URL = f'http://tallinzen.net/media/rnn_agreement/{_TAR}'
 _LABEL_DICT = {'VBZ': 0, 'VBP': 1}
 
 
@@ -103,11 +104,10 @@ def load_examples(tmp_dir, prop_train=0.09, prop_val=0.01):
   n_val = n_train + int(len(all_examples) * prop_val)
   train = all_examples[:n_train]
   val = all_examples[n_train:n_val]
-  test = []
-  for e in all_examples[n_val:]:
-    if e['n_intervening'] == e['n_diff_intervening']:
-      test.append(e)
-
+  test = [
+      e for e in all_examples[n_val:]
+      if e['n_intervening'] == e['n_diff_intervening']
+  ]
   return all_examples, train, val, test
 
 

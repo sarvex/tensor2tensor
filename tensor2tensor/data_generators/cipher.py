@@ -171,10 +171,8 @@ def generate_plaintext_random(plain_vocab, distribution, train_samples,
   if distribution is not None:
     assert len(distribution) == len(plain_vocab)
 
-  train_indices = np.random.choice(
-      range(len(plain_vocab)), (train_samples, length), p=distribution)
-
-  return train_indices
+  return np.random.choice(range(len(plain_vocab)), (train_samples, length),
+                          p=distribution)
 
 
 def encipher_shift(plaintext, plain_vocab, shift):
@@ -190,9 +188,9 @@ def encipher_shift(plaintext, plain_vocab, shift):
   ciphertext = []
   cipher = ShiftEncryptionLayer(plain_vocab, shift)
 
-  for _, sentence in enumerate(plaintext):
+  for sentence in plaintext:
     cipher_sentence = []
-    for _, character in enumerate(sentence):
+    for character in sentence:
       encrypted_char = cipher.encrypt_character(character)
       cipher_sentence.append(encrypted_char)
     ciphertext.append(cipher_sentence)
@@ -217,7 +215,7 @@ def encipher_vigenere(plaintext, plain_vocab, key):
       ShiftEncryptionLayer(plain_vocab, i) for i in range(len(plain_vocab))
   ]
 
-  for i, sentence in enumerate(plaintext):
+  for sentence in plaintext:
     cipher_sentence = []
     for j, character in enumerate(sentence):
       key_idx = key[j % len(key)]

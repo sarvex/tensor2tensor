@@ -15,6 +15,7 @@
 
 """Data generators for translation data-sets."""
 
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -41,16 +42,17 @@ EOS = text_encoder.EOS_ID
 # This dataset is only a small fraction of full WMT18 task
 _STAT_MT_URL = "http://data.statmt.org/wmt18/translation-task/"
 _NC_TRAIN_DATASETS = [[
-    _STAT_MT_URL + "training-parallel-nc-v13.tgz", [
+    f"{_STAT_MT_URL}training-parallel-nc-v13.tgz",
+    [
         "training-parallel-nc-v13/news-commentary-v13.zh-en.en",
-        "training-parallel-nc-v13/news-commentary-v13.zh-en.zh"
-    ]
+        "training-parallel-nc-v13/news-commentary-v13.zh-en.zh",
+    ],
 ]]
 
 # Test set from News Commentary. 2000 lines
 _NC_TEST_DATASETS = [[
-    _STAT_MT_URL + "dev.tgz",
-    ("dev/newsdev2017-enzh-src.en.sgm", "dev/newsdev2017-enzh-ref.zh.sgm")
+    f"{_STAT_MT_URL}dev.tgz",
+    ("dev/newsdev2017-enzh-src.en.sgm", "dev/newsdev2017-enzh-ref.zh.sgm"),
 ]]
 
 # UN parallel corpus. 15,886,041 lines
@@ -182,11 +184,11 @@ class TranslateEnzhWmt32k(translate.TranslateProblem):
 
   @property
   def source_vocab_name(self):
-    return "%s.en" % self.vocab_filename
+    return f"{self.vocab_filename}.en"
 
   @property
   def target_vocab_name(self):
-    return "%s.zh" % self.vocab_filename
+    return f"{self.vocab_filename}.zh"
 
   def get_training_dataset(self, tmp_dir):
     """UN Parallel Corpus and CWMT Corpus need to be downloaded manually.
@@ -233,12 +235,14 @@ class TranslateEnzhWmt32k(translate.TranslateProblem):
         file_byte_budget=1e8,
         max_subtoken_length=self.max_subtoken_length)
     tag = "train" if train else "dev"
-    filename_base = "wmt_enzh_%sk_tok_%s" % (self.approx_vocab_size, tag)
+    filename_base = f"wmt_enzh_{self.approx_vocab_size}k_tok_{tag}"
     data_path = translate.compile_data(tmp_dir, datasets, filename_base)
     return text_problems.text2text_generate_encoded(
-        text_problems.text2text_txt_iterator(data_path + ".lang1",
-                                             data_path + ".lang2"),
-        source_vocab, target_vocab)
+        text_problems.text2text_txt_iterator(f"{data_path}.lang1",
+                                             f"{data_path}.lang2"),
+        source_vocab,
+        target_vocab,
+    )
 
   def feature_encoders(self, data_dir):
     source_vocab_filename = os.path.join(data_dir, self.source_vocab_name)

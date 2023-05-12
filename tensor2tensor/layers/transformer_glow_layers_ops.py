@@ -90,8 +90,7 @@ def transformer_decoder_block(name,
   """
   with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
     hparams = kwargs.pop("hparams")
-    disable_dropout = kwargs.pop("disable_dropout")
-    if disable_dropout:
+    if disable_dropout := kwargs.pop("disable_dropout"):
       hparams = copy.deepcopy(hparams)
       hparams.attention_dropout = 0.0
       hparams.layer_prepostprocess_dropout = 0.0
@@ -129,7 +128,7 @@ def reduce_sum_over_lc(x, x_mask):
   if x.shape.rank == 3 and x_mask.shape.rank == 2:
     x_mask = x_mask[..., tf.newaxis]
   else:
-    tf.logging.info("x: {}, x_mask: {}".format(x.shape.rank, x_mask.shape.rank))
+    tf.logging.info(f"x: {x.shape.rank}, x_mask: {x_mask.shape.rank}")
     raise ValueError("Dimension not supported.")
 
   mean = x * x_mask
@@ -150,7 +149,7 @@ def reduce_sum_over_l(x, x_mask):
   if x.shape.rank == 3 and x_mask.shape.rank == 2:
     x_mask = x_mask[..., tf.newaxis]
   else:
-    tf.logging.info("x: {}, x_mask: {}".format(x.shape.rank, x_mask.shape.rank))
+    tf.logging.info(f"x: {x.shape.rank}, x_mask: {x_mask.shape.rank}")
     raise ValueError("Dimension not supported.")
 
   mean = x * x_mask
@@ -176,7 +175,7 @@ def reduce_mean_over_bl(x, x_mask):
   if x.shape.rank == 3 and x_mask.shape.rank == 2:
     x_mask = x_mask[..., tf.newaxis]
   else:
-    tf.logging.info("x: {}, x_mask: {}".format(x.shape.rank, x_mask.shape.rank))
+    tf.logging.info(f"x: {x.shape.rank}, x_mask: {x_mask.shape.rank}")
     raise ValueError("Dimension not supported.")
 
   mean = x * x_mask
@@ -216,11 +215,9 @@ def standard_normal_density(x, x_mask, reduce_sum=False):
 def standard_normal(x, name="normal"):
   """Return standard normal distribution with same shape as x."""
   with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-    dist = tfp.distributions.Normal(
-        loc=tf.zeros_like(x),
-        scale=tf.ones_like(x),
-        allow_nan_stats=False)
-    return dist
+    return tfp.distributions.Normal(loc=tf.zeros_like(x),
+                                    scale=tf.ones_like(x),
+                                    allow_nan_stats=False)
 
 
 def diagonal_normal(outputs, name="normal"):
@@ -228,11 +225,11 @@ def diagonal_normal(outputs, name="normal"):
   with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
     loc, log_scale = tf.split(outputs, 2, axis=-1)
     scale = tf.exp(log_scale)
-    dist = tfp.distributions.Normal(
+    return tfp.distributions.Normal(
         loc=loc,
         scale=scale + tf.keras.backend.epsilon(),
-        allow_nan_stats=False)
-    return dist
+        allow_nan_stats=False,
+    )
 
 
 def split_coupling(
@@ -289,9 +286,6 @@ def get_variable_ddi(
   if regularizer:
     kwargs["regularizer"] = regularizer
   w = tf.get_variable(name, shape, dtype, **kwargs)
-  if isinstance(init, bool):
-    if init:
-      return assign(w, value)
-    return w
-  else:
+  if not isinstance(init, bool):
     return tf.cond(init, lambda: assign(w, value), lambda: w)
+  return assign(w, value) if init else w

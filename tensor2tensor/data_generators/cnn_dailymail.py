@@ -75,23 +75,23 @@ def _maybe_download_corpora(tmp_dir, dataset_split):
     List of all files generated and path to file containing
       train/dev/test split info.
   """
-  cnn_filename = "cnn_stories.tgz"
   cnn_finalpath = os.path.join(tmp_dir, "cnn/stories/")
-  dailymail_filename = "dailymail_stories.tgz"
   dailymail_finalpath = os.path.join(tmp_dir, "dailymail/stories/")
   if not tf.gfile.Exists(cnn_finalpath):
+    cnn_filename = "cnn_stories.tgz"
     cnn_file = generator_utils.maybe_download_from_drive(
         tmp_dir, cnn_filename, _CNN_STORIES_DRIVE_URL)
     with tarfile.open(cnn_file, "r:gz") as cnn_tar:
       cnn_tar.extractall(tmp_dir)
   if not tf.gfile.Exists(dailymail_finalpath):
+    dailymail_filename = "dailymail_stories.tgz"
     dailymail_file = generator_utils.maybe_download_from_drive(
         tmp_dir, dailymail_filename, _DAILYMAIL_STORIES_DRIVE_URL)
     with tarfile.open(dailymail_file, "r:gz") as dailymail_tar:
       dailymail_tar.extractall(tmp_dir)
 
-  cnn_files = tf.gfile.Glob(cnn_finalpath + "*")
-  dailymail_files = tf.gfile.Glob(dailymail_finalpath + "*")
+  cnn_files = tf.gfile.Glob(f"{cnn_finalpath}*")
+  dailymail_files = tf.gfile.Glob(f"{dailymail_finalpath}*")
   all_files = cnn_files + dailymail_files
 
   if dataset_split == problem.DatasetSplit.TRAIN:
@@ -123,9 +123,9 @@ def example_splits(url_file, all_files):
   filelist = []
   for url in urls:
     url_hash = generate_hash(url)
-    filename = url_hash + ".story"
+    filename = f"{url_hash}.story"
     if filename not in all_files_map:
-      tf.logging.info("Missing file: %s" % url)
+      tf.logging.info(f"Missing file: {url}")
       continue
     filelist.append(all_files_map[filename])
 
@@ -142,9 +142,7 @@ def example_generator(all_files, urls_path, sum_token):
       return line
     if not line:
       return line
-    if line[-1] in END_TOKENS:
-      return line
-    return line + u"."
+    return line if line[-1] in END_TOKENS else f"{line}."
 
   filelist = example_splits(urls_path, all_files)
   story_summary_split_token = u" <summary> " if sum_token else " "
@@ -185,12 +183,8 @@ def write_raw_text_to_files(all_files, urls_path, dataset_split, tmp_dir):
 
   def write_to_file(all_files, urls_path, tmp_dir, filename):
     """Write text to files."""
-    with io.open(
-        os.path.join(tmp_dir, filename + ".source"), "w",
-        encoding="utf-8") as fstory:
-      with io.open(
-          os.path.join(tmp_dir, filename + ".target"), "w",
-          encoding="utf-8") as fsummary:
+    with io.open(os.path.join(tmp_dir, f"{filename}.source"), "w", encoding="utf-8") as fstory:
+      with io.open(os.path.join(tmp_dir, f"{filename}.target"), "w", encoding="utf-8") as fsummary:
         for example in example_generator(all_files, urls_path, sum_token=True):
           story, summary = _story_summary_split(example)
           fstory.write(story + "\n")
@@ -203,7 +197,7 @@ def write_raw_text_to_files(all_files, urls_path, dataset_split, tmp_dir):
   else:
     filename = "cnndm.test"
 
-  tf.logging.info("Writing %s" % filename)
+  tf.logging.info(f"Writing {filename}")
   write_to_file(all_files, urls_path, tmp_dir, filename)
 
 

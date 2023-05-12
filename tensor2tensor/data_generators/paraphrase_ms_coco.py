@@ -136,15 +136,14 @@ class ParaphraseGenerationMsCocoProblem(ParaphraseGenerationProblem):
     path = generator_utils.maybe_download(tmp_dir, filename, download_url)
     unzip_dir = os.path.join(tmp_dir, filename.strip(".zip"))
     if not tf.gfile.Exists(unzip_dir):
-      tf.logging.info("Unzipping data to {}".format(unzip_dir))
+      tf.logging.info(f"Unzipping data to {unzip_dir}")
       zipfile.ZipFile(path, "r").extractall(unzip_dir)
 
     if dataset_split == problem.DatasetSplit.TRAIN:
       ms_coco_file = _MS_COCO_TRAIN_FILE
     else:
       ms_coco_file = _MS_COCO_DEV_FILE
-    ms_coco_path = os.path.join(unzip_dir, "annotations", ms_coco_file)
-    return ms_coco_path
+    return os.path.join(unzip_dir, "annotations", ms_coco_file)
 
   def _get_captions(self, ms_coco_path):
     caption_file = io.open(ms_coco_path)
@@ -156,8 +155,7 @@ class ParaphraseGenerationMsCocoProblem(ParaphraseGenerationProblem):
       image_id = annotation["image_id"]
       captions_for_image[image_id].append(annotation["caption"])
 
-    captions = list(captions_for_image.values())
-    return captions
+    return list(captions_for_image.values())
 
 
 @registry.register_problem

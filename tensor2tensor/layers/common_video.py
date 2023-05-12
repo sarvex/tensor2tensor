@@ -187,12 +187,12 @@ def inject_additional_input(layer, inputs, name, mode="concat"):
   elif mode == "multi_additive":
     filters = layer_shape[-1]
     input_reshaped = tf.reshape(inputs, [-1, 1, 1, input_shape[-1]])
-    input_mul = tf.layers.dense(input_reshaped, filters, name=name + "_mul")
+    input_mul = tf.layers.dense(input_reshaped, filters, name=f"{name}_mul")
     layer *= tf.nn.sigmoid(input_mul)
-    input_add = tf.layers.dense(input_reshaped, filters, name=name + "_add")
+    input_add = tf.layers.dense(input_reshaped, filters, name=f"{name}_add")
     layer += input_add
   else:
-    raise ValueError("Unknown injection mode: %s" % mode)
+    raise ValueError(f"Unknown injection mode: {mode}")
 
   return layer
 
@@ -235,11 +235,15 @@ def dna_transformation(prev_image, dna_input, dna_kernel_size, relu_shift):
 
   inputs = []
   for xkern in range(dna_kernel_size):
-    for ykern in range(dna_kernel_size):
-      inputs.append(
-          tf.expand_dims(
-              tf.slice(prev_image_pad, [0, xkern, ykern, 0],
-                       [-1, image_height, image_width, -1]), [3]))
+    inputs.extend(
+        tf.expand_dims(
+            tf.slice(
+                prev_image_pad,
+                [0, xkern, ykern, 0],
+                [-1, image_height, image_width, -1],
+            ),
+            [3],
+        ) for ykern in range(dna_kernel_size))
   inputs = tf.concat(axis=3, values=inputs)
 
   # Normalize channels to 1.
@@ -440,17 +444,12 @@ def py_gif_summary(tag, images, max_outputs, fps, return_summary_value=False):
         tf.logging.warning(
             "Gif summaries requires ffmpeg or PIL to be installed: %s", e)
         image_summ.encoded_image_string = ""
-    if num_outputs == 1:
-      summ_tag = "{}/gif".format(tag)
-    else:
-      summ_tag = "{}/gif/{}".format(tag, i)
+    summ_tag = f"{tag}/gif" if num_outputs == 1 else f"{tag}/gif/{i}"
     curr_summ_value = tf.Summary.Value(tag=summ_tag, image=image_summ)
     all_summ_values.append(curr_summ_value)
     summ.value.add(tag=summ_tag, image=image_summ)
   summ_str = summ.SerializeToString()
-  if return_summary_value:
-    return all_summ_values, summ_str
-  return summ_str
+  return (all_summ_values, summ_str) if return_summary_value else summ_str
 
 
 def gif_summary(name, tensor, max_outputs=3, fps=10, collections=None,
@@ -500,9 +499,7 @@ def gif_summary(name, tensor, max_outputs=3, fps=10, collections=None,
 def tinyify(array, tiny_mode, small_mode):
   if tiny_mode:
     return [1 for _ in array]
-  if small_mode:
-    return [max(x // 4, 1) for x in array]
-  return array
+  return [max(x // 4, 1) for x in array] if small_mode else array
 
 
 def get_gaussian_tensor(mean, log_var):
@@ -608,12 +605,13 @@ def beta_schedule(schedule, global_step, final_beta, decay_start, decay_end):
   increased_value = final_beta - decayed_value
   increased_value = tf.maximum(0.0, increased_value)
 
-  beta = tf.case(
+  return tf.case(
       pred_fn_pairs={
           tf.less(global_step, decay_start): lambda: 0.0,
-          tf.greater(global_step, decay_end): lambda: final_beta},
-      default=lambda: increased_value)
-  return beta
+          tf.greater(global_step, decay_end): lambda: final_beta,
+      },
+      default=lambda: increased_value,
+  )
 
 
 def extract_random_video_patch(videos, num_frames=-1):
@@ -829,8 +827,7 @@ class BatchWholeVideoWriter(VideoWriter):
       self.writers[i].write(frame)
 
   def finish(self):
-    outs = [w.finish() for w in self.writers]
-    return outs
+    return [w.finish() for w in self.writers]
 
   def save_to_disk(self, outputs):
     for (writer, output) in zip(self.writers, outputs):

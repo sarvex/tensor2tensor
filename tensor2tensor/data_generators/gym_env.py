@@ -60,10 +60,7 @@ class Observation(object):
 
   def __eq__(self, other):
     """Equality comparison based on encoded data."""
-    if isinstance(other, Observation):
-      return self.data == other.data
-    else:
-      return False
+    return self.data == other.data if isinstance(other, Observation) else False
 
   def __ne__(self, other):
     """For consistency with __eq__."""
@@ -175,9 +172,9 @@ class T2TEnv(EnvSimulationProblem):
 
   def start_new_epoch(self, epoch, load_data_dir=None):
     if not isinstance(epoch, int):
-      raise ValueError("Epoch should be integer, got {}".format(epoch))
+      raise ValueError(f"Epoch should be integer, got {epoch}")
     if epoch in self._rollouts_by_epoch_and_split:
-      raise ValueError("Epoch {} already registered".format(epoch))
+      raise ValueError(f"Epoch {epoch} already registered")
     self.current_epoch = epoch
     self._current_epoch_rollouts = []
     self._rollouts_by_epoch_and_split[epoch] = collections.defaultdict(list)
@@ -187,28 +184,21 @@ class T2TEnv(EnvSimulationProblem):
       self._load_epoch_data(load_data_dir)
 
   def current_epoch_rollouts(self, split=None, minimal_rollout_frames=0):
-    # TODO(kc): order of rollouts (by splits) is a bit uncontrolled
-    # (rollouts_by_split.values() reads dict values), is it a problem?
-    rollouts_by_split = self._rollouts_by_epoch_and_split[self.current_epoch]
-    if not rollouts_by_split:
-      if split is not None:
-        raise ValueError(
-            "Data is not splitted into train/dev/test. If data created by "
-            "environment interaction (NOT loaded from disk) you should call "
-            "generate_data() first. Note that generate_data() will write to "
-            "disk and can corrupt your experiment data."
-        )
-      else:
-        rollouts = self._current_epoch_rollouts
+    if rollouts_by_split := self._rollouts_by_epoch_and_split[
+        self.current_epoch]:
+      rollouts = (rollouts_by_split[split] if split is not None else [
+          rollout for rollouts in rollouts_by_split.values()
+          for rollout in rollouts
+      ])
+    elif split is None:
+      rollouts = self._current_epoch_rollouts
     else:
-      if split is not None:
-        rollouts = rollouts_by_split[split]
-      else:
-        rollouts = [
-            rollout
-            for rollouts in rollouts_by_split.values()
-            for rollout in rollouts
-        ]
+      raise ValueError(
+          "Data is not splitted into train/dev/test. If data created by "
+          "environment interaction (NOT loaded from disk) you should call "
+          "generate_data() first. Note that generate_data() will write to "
+          "disk and can corrupt your experiment data."
+      )
     return [rollout for rollout in rollouts
             if len(rollout) >= minimal_rollout_frames]
 
@@ -364,11 +354,11 @@ class T2TEnv(EnvSimulationProblem):
     raise NotImplementedError
 
   def eval_metrics(self):
-    eval_metrics = [
-        metrics.Metrics.ACC, metrics.Metrics.ACC_PER_SEQ,
-        metrics.Metrics.IMAGE_RMSE
+    return [
+        metrics.Metrics.ACC,
+        metrics.Metrics.ACC_PER_SEQ,
+        metrics.Metrics.IMAGE_RMSE,
     ]
-    return eval_metrics
 
   @property
   def extra_reading_spec(self):
@@ -489,7 +479,7 @@ class T2TEnv(EnvSimulationProblem):
         data_dir, mode, shard
     )
     if only_last:
-      filepattern += ".{}".format(self.current_epoch)
+      filepattern += f".{self.current_epoch}"
     return filepattern
 
   def generate_data(self, data_dir, tmp_dir=None, task_id=-1):
@@ -613,7 +603,7 @@ class T2TGymEnv(T2TEnv):
     self._initial_frames = None
     if not self.name:
       # Set problem name if not registered.
-      self.name = "Gym%s" % base_env_name
+      self.name = f"Gym{base_env_name}"
 
     self._envs = [
         gym_utils.make_gym_env(
@@ -629,8 +619,7 @@ class T2TGymEnv(T2TEnv):
     self.max_num_noops = max_num_noops
 
     orig_observ_space = self._envs[0].observation_space
-    if not all(env.observation_space == orig_observ_space
-               for env in self._envs):
+    if any(env.observation_space != orig_observ_space for env in self._envs):
       raise ValueError("All environments must use the same observation space.")
 
     self.observation_space = orig_observ_space
@@ -638,7 +627,7 @@ class T2TGymEnv(T2TEnv):
       self.observation_space = self._derive_observation_space(orig_observ_space)
 
     self.action_space = self._envs[0].action_space
-    if not all(env.action_space == self.action_space for env in self._envs):
+    if any(env.action_space != self.action_space for env in self._envs):
       raise ValueError("All environments must use the same action space.")
 
     if self.should_derive_observation_space:
@@ -676,8 +665,7 @@ class T2TGymEnv(T2TEnv):
         "rl_env_max_episode_steps": self.rl_env_max_episode_steps,
         "max_num_noops": self.max_num_noops,
         "maxskip_envs": self.maxskip_envs,
-    }
-    env_kwargs.update(kwargs)
+    } | kwargs
     return T2TGymEnv(**env_kwargs)
 
   @property
@@ -701,7 +689,7 @@ class T2TGymEnv(T2TEnv):
                dtype=orig_observ_space.dtype)
 
   def __str__(self):
-    return "T2TGymEnv(%s)" % ", ".join([str(env) for env in self._envs])
+    return f'T2TGymEnv({", ".join([str(env) for env in self._envs])})'
 
   def _encode_observations(self, observations):
     if not self.should_derive_observation_space:
@@ -739,9 +727,8 @@ class T2TGymEnv(T2TEnv):
       obs = env.reset()
       if self._initial_state is None:
         return obs
-      else:
-        env.unwrapped.restore_full_state(self._initial_state[index])
-        return self._initial_frames[index, ...]
+      env.unwrapped.restore_full_state(self._initial_state[index])
+      return self._initial_frames[index, ...]
 
     def reset_with_noops(env, index):
       """Resets environment and applies random number of NOOP actions on it."""
@@ -893,13 +880,16 @@ def register_game(game_name, game_mode="NoFrameskip-v4"):
     ValueError: if game_name or game_mode are wrong.
   """
   if game_name not in ATARI_GAMES:
-    raise ValueError("Game %s not in ATARI_GAMES" % game_name)
+    raise ValueError(f"Game {game_name} not in ATARI_GAMES")
   if game_mode not in ATARI_GAME_MODES:
-    raise ValueError("Unknown ATARI game mode: %s." % game_mode)
+    raise ValueError(f"Unknown ATARI game mode: {game_mode}.")
   camel_game_name = misc_utils.snakecase_to_camelcase(game_name) + game_mode
   # Create and register the Problem
-  cls = type("Gym%sRandom" % camel_game_name,
-             (T2TGymEnv,), {"base_env_name": camel_game_name})
+  cls = type(
+      f"Gym{camel_game_name}Random",
+      (T2TGymEnv, ),
+      {"base_env_name": camel_game_name},
+  )
   registry.register_problem(cls)
 
 

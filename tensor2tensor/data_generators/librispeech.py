@@ -79,7 +79,7 @@ def _collect_data(directory, input_ext, transcription_ext):
           media_base, label = line_contents
           key = os.path.join(root, media_base)
           assert key not in data_files
-          media_name = "%s.%s"%(media_base, input_ext)
+          media_name = f"{media_base}.{input_ext}"
           media_path = os.path.join(root, media_name)
           data_files[key] = (media_base, media_path, label)
   return data_files
@@ -125,13 +125,10 @@ class Librispeech(speech_recognition.SpeechRecognitionProblem):
 
       read_type = "r:gz" if filename.endswith("tgz") else "r"
       with tarfile.open(compressed_file, read_type) as corpus_tar:
-        # Create a subset of files that don't already exist.
-        #   tarfile.extractall errors when encountering an existing file
-        #   and tarfile.extract is extremely slow
-        members = []
-        for f in corpus_tar:
-          if not os.path.isfile(os.path.join(tmp_dir, f.name)):
-            members.append(f)
+        members = [
+            f for f in corpus_tar
+            if not os.path.isfile(os.path.join(tmp_dir, f.name))
+        ]
         corpus_tar.extractall(tmp_dir, members=members)
 
       raw_data_dir = os.path.join(tmp_dir, "LibriSpeech", subdir)
@@ -224,7 +221,7 @@ class LibrispeechTrainFullTestClean(Librispeech):
       path = os.path.join(data_dir, "librispeech_clean")
       suffix = "test"
 
-    return "%s-%s%s*" % (path, suffix, shard_str)
+    return f"{path}-{suffix}{shard_str}*"
 
 
 @registry.register_problem()
@@ -272,7 +269,7 @@ class LibrispeechTrainFullTestOther(Librispeech):
       path = os.path.join(data_dir, "librispeech_noisy")
       suffix = "test"
 
-    return "%s-%s%s*" % (path, suffix, shard_str)
+    return f"{path}-{suffix}{shard_str}*"
 
 
 @registry.register_problem()

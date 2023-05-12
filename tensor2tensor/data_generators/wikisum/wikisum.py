@@ -15,6 +15,7 @@
 
 """Wikipedia Summarization Problems."""
 
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -40,7 +41,7 @@ import tensorflow.compat.v1 as tf
 
 PROCESS_FOLDER_PREFIX = "process"
 REF_SHARD_FILE_PREFIX = "references.tfrecords.gz"
-REF_SHARD_FILE = REF_SHARD_FILE_PREFIX + "-%05d-of-01000"
+REF_SHARD_FILE = f"{REF_SHARD_FILE_PREFIX}-%05d-of-01000"
 
 # Support files
 BASE_SUPPORT_DIR = "gs://tensor2tensor-data/wikisum"
@@ -201,20 +202,16 @@ class WikisumWebLeadSection(WikisumWeb):
 def make_ref_shard_files(out_dir):
   tf.gfile.MakeDirs(out_dir)
   opts = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.GZIP)
-  files = [
-      tf.python_io.TFRecordWriter(
-          os.path.join(out_dir, REF_SHARD_FILE % i), opts)
-      for i in range(cc_utils.NUM_SHARDS)
+  return [
+      tf.python_io.TFRecordWriter(os.path.join(out_dir, REF_SHARD_FILE % i),
+                                  opts) for i in range(cc_utils.NUM_SHARDS)
   ]
-  return files
 
 
 def _truncate_to_lead_section(example):
   wiki = example["targets"]
   lead_boundary = example["section_boundaries"][0]
-  # Concat a new EOS to the lead since the original one gets truncated.
-  lead = tf.concat((wiki[:lead_boundary], [text_encoder.EOS_ID]), 0)
-  return lead
+  return tf.concat((wiki[:lead_boundary], [text_encoder.EOS_ID]), 0)
 
 
 def _make_example_from_record(record):
@@ -239,7 +236,7 @@ def _references_files_by_shard(refs_dir):
   process_dirs = _process_folders(refs_dir)
   shards = collections.defaultdict(list)
   for d in process_dirs:
-    ref_files = tf.gfile.Glob(os.path.join(d, REF_SHARD_FILE_PREFIX) + "*")
+    ref_files = tf.gfile.Glob(f"{os.path.join(d, REF_SHARD_FILE_PREFIX)}*")
     for f in ref_files:
       shards[_shard_id_for_file(f)].append(f)
   return shards
@@ -251,11 +248,11 @@ def _references_content(ref_files):
       "url": tf.FixedLenFeature([], tf.string),
       "content": tf.FixedLenFeature([], tf.string),
   }
-  data = {}
-  for ex in generator_utils.tfrecord_iterator(
-      ref_files, gzipped=True, example_spec=example_spec):
-    data[ex["url"]] = text_encoder.to_unicode(ex["content"])
-  return data
+  return {
+      ex["url"]: text_encoder.to_unicode(ex["content"])
+      for ex in generator_utils.tfrecord_iterator(
+          ref_files, gzipped=True, example_spec=example_spec)
+  }
 
 
 def _wiki_urls_for_shard(shard_id, urls_dir=None):
@@ -335,7 +332,7 @@ def _token_counts(text, token_set=None):
 def _normalize_text(text):
   text = text.lower()
   # Space around punctuation
-  text = re.sub("[%s]" % re.escape(string.punctuation), r" \g<0> ", text)
+  text = re.sub(f"[{re.escape(string.punctuation)}]", r" \g<0> ", text)
   text = re.sub(r"\s+", " ", text)
   text = text.strip()
   return text
@@ -482,7 +479,7 @@ def produce_examples(shard_ids, wikis_dir, refs_dir, urls_dir, vocab_path,
 
 
 def _format_title(title):
-  return " == %s == " % title
+  return f" == {title} == "
 
 
 def _encode_wiki_sections(sections, vocab):
@@ -500,7 +497,7 @@ def _encode_wiki_sections(sections, vocab):
 
 
 def _process_folders(tmp_dir):
-  return tf.gfile.Glob(os.path.join(tmp_dir, PROCESS_FOLDER_PREFIX) + "*")
+  return tf.gfile.Glob(f"{os.path.join(tmp_dir, PROCESS_FOLDER_PREFIX)}*")
 
 
 def extract_references_from_wets(wet_files, metadata_dir, out_dir,

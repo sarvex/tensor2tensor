@@ -129,11 +129,9 @@ def wait_for_ssh(ip):
   """Wait for SSH to be available at given IP address."""
   for _ in range(12):
     with safe_socket() as s:
-      try:
+      with contextlib.suppress(socket.timeout):
         s.connect((ip, 22))
         return True
-      except socket.timeout:
-        pass
     time.sleep(10)
   return False
 
@@ -148,8 +146,7 @@ def create_instance(instance_name, cpu=1, mem=4):
 def list_vm_names_and_ips():
   list_out = cloud.shell_output(cloud.LIST_VM)
   lines = [l.split() for l in list_out.split("\n")[1:-1]]
-  names_and_ips = [(l[0].strip(), l[-2].strip()) for l in lines]
-  return names_and_ips
+  return [(l[0].strip(), l[-2].strip()) for l in lines]
 
 
 def shell_run_with_retry(cmd, retries=1, **kwargs):
@@ -181,7 +178,7 @@ def launch_instance(instance_name,
   tf.logging.info("Waiting for SSH %s", instance_name)
   ready = wait_for_ssh(ip)
   if not ready:
-    raise ValueError("Instance %s never ready for SSH" % instance_name)
+    raise ValueError(f"Instance {instance_name} never ready for SSH")
 
   # Copy code
   if code_dir:

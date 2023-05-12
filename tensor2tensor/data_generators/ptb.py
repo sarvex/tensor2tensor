@@ -40,9 +40,9 @@ def _read_words(filename):
   """Reads words from a file."""
   with tf.gfile.GFile(filename, "r") as f:
     if sys.version_info[0] >= 3:
-      return f.read().replace("\n", " %s " % EOS).split()
+      return f.read().replace("\n", f" {EOS} ").split()
     else:
-      return f.read().decode("utf-8").replace("\n", " %s " % EOS).split()
+      return f.read().decode("utf-8").replace("\n", f" {EOS} ").split()
 
 
 def _build_vocab(filename, vocab_path, vocab_size):
@@ -154,7 +154,7 @@ class LanguagemodelPtb10k(text_problems.Text2SelfProblem):
     def _generate_samples():
       with tf.gfile.GFile(filepath, "r") as f:
         for line in f:
-          line = " ".join(line.replace("\n", " %s " % EOS).split())
+          line = " ".join(line.replace("\n", f" {EOS} ").split())
           yield {"targets": line}
 
     return _generate_samples()

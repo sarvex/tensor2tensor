@@ -143,8 +143,8 @@ class GymEnvProblem(env_problem.EnvProblem):
     # action_space because compositional classes like space.Tuple don't return
     # true on object comparison.
 
-    if not all(
-        str(env.observation_space) == str(self.observation_space)
+    if any(
+        str(env.observation_space) != str(self.observation_space)
         for env in self._envs):
       err_str = ("All environments should have the same observation space, but "
                  "don't.")
@@ -155,8 +155,8 @@ class GymEnvProblem(env_problem.EnvProblem):
                       env.observation_space)
       raise ValueError(err_str)
 
-    if not all(
-        str(env.action_space) == str(self.action_space) for env in self._envs):
+    if any(
+        str(env.action_space) != str(self.action_space) for env in self._envs):
       err_str = "All environments should have the same action space, but don't."
       logging.error(err_str)
       # Log all action spaces.

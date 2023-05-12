@@ -74,8 +74,8 @@ class ExprNode(object):
     right_use_parens = (isinstance(self.right, ExprNode) and
                         self.right.op.precedence <= self.op.precedence and
                         not (self.op.associative and self.right.op == self.op))
-    left_final = "(" + left_str + ")" if left_use_parens else left_str
-    right_final = "(" + right_str + ")" if right_use_parens else right_str
+    left_final = f"({left_str})" if left_use_parens else left_str
+    right_final = f"({right_str})" if right_use_parens else right_str
     return left_final + str(self.op) + right_final
 
   def is_in(self, expr):
@@ -270,7 +270,7 @@ def generate_algebra_inverse_sample(vlist, ops, solve_ops, min_depth,
   left_str = str(left)
   right_str = str(right)
   target = str(algebra_inverse_solve(left, right, var, solve_ops))
-  sample = "%s:%s=%s" % (var, left_str, right_str)
+  sample = f"{var}:{left_str}={right_str}"
   return sample, target
 
 
@@ -329,7 +329,7 @@ def generate_calculus_integrate_sample(vlist, ops, min_depth, max_depth,
   expr = random_expr_with_required_var(depth, var, consts, ops)
 
   expr_str = str(expr)
-  sample = var + ":" + expr_str
+  sample = f"{var}:{expr_str}"
   target = format_sympy_expr(
       sympy.integrate(expr_str, sympy.Symbol(var)), functions=functions)
   return sample, target
@@ -399,24 +399,20 @@ def math_dataset_init(alphabet_size=26, digits=None, functions=None):
       [six.int2byte(ord("A") + c).decode("utf-8") for c in range(26)])
   if alphabet_size > 52:
     raise ValueError(
-        "alphabet_size cannot be greater than 52. Got %s." % alphabet_size)
+        f"alphabet_size cannot be greater than 52. Got {alphabet_size}.")
   if alphabet_size < 2:
-    raise ValueError(
-        "alphabet_size cannot be less than 2. Got %s." % alphabet_size)
+    raise ValueError(f"alphabet_size cannot be less than 2. Got {alphabet_size}.")
   if digits is not None and not 1 <= digits <= 10:
-    raise ValueError("digits cannot must be between 1 and 10. Got %s." % digits)
+    raise ValueError(f"digits cannot must be between 1 and 10. Got {digits}.")
   vlist = alphabet[:alphabet_size]
-  if digits is not None:
-    dlist = [str(d) for d in range(digits)]
-  else:
-    dlist = []
+  dlist = [str(d) for d in range(digits)] if digits is not None else []
   if functions is None:
     functions = {}
   flist = sorted(functions.values())
   pad = "_"
   tokens = [pad] + [":", "(", ")", "="] + ops_list + vlist + dlist + flist
   if len(tokens) != len(set(tokens)):
-    raise ValueError("Duplicate token. Tokens: %s" % tokens)
+    raise ValueError(f"Duplicate token. Tokens: {tokens}")
   token_map = dict([(t, i) for i, t in enumerate(tokens)])
 
   def int_encoder(sequence):
@@ -552,7 +548,7 @@ def calculus_integrate(alphabet_size=26,
   # names.
   if alphabet_size > 26:
     raise ValueError(
-        "alphabet_size must not be greater than 26. Got %s." % alphabet_size)
+        f"alphabet_size must not be greater than 26. Got {alphabet_size}.")
 
   functions = {"log": "L"}
   alg_cfg = math_dataset_init(alphabet_size, digits=5, functions=functions)

@@ -42,10 +42,7 @@ def concat_generator(filename, up_threshold, low_threshold=10):
       if len(ret) > low_threshold and len(ret) < up_threshold:
         yield {"targets": ret}
 
-    if not txt:
-      txt = line
-    else:
-      txt = " ".join([txt, line])
+    txt = line if not txt else " ".join([txt, line])
 
 
 def mix_generators(generator_list):
@@ -130,7 +127,7 @@ class LanguagemodelEnWiki32k(text_problems.Text2SelfProblem):
 
     wiki_generators = []
     for (fname, fid) in file_names_ids:
-      url = "https://drive.google.com/uc?export=download&id=" + fid
+      url = f"https://drive.google.com/uc?export=download&id={fid}"
       download_path = generator_utils.maybe_download_from_drive(
           tmp_dir, fname, url)
       wiki_file = os.path.join(tmp_dir, fname[:-3])
@@ -139,8 +136,7 @@ class LanguagemodelEnWiki32k(text_problems.Text2SelfProblem):
       wiki_generators.append(
           concat_generator(wiki_file, self.combine_characters_threshold))
 
-    for example in mix_generators(wiki_generators):
-      yield example
+    yield from mix_generators(wiki_generators)
 
 
 @registry.register_problem

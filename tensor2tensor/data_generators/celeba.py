@@ -118,7 +118,7 @@ class ImageCeleba(image_utils.ImageProblem):
     img_landmarks, _ = process_landmarks(landmarks_raw)
     img_attrs, _ = process_attrs(attr_raw)
 
-    image_files = list(sorted(tf.gfile.Glob(unzipped_folder + "/*.jpg")))
+    image_files = list(sorted(tf.gfile.Glob(f"{unzipped_folder}/*.jpg")))
     for filename in image_files[start_from:start_from + how_many]:
       img_name = os.path.basename(filename)
       landmarks = img_landmarks[img_name]

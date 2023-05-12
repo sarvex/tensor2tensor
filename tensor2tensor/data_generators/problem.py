@@ -161,10 +161,10 @@ def preprocess_example_common(example, mode, hparams):
   if hparams.split_to_length:
     new_example = {}
     for k, v in six.iteritems(example):
-      if k == "targets" or k == "inputs":
+      if k in ["targets", "inputs"]:
         new_example[k] = tf.reshape(v, [-1, hparams.split_to_length, 1, 1])
       else:
-        tf.logging.warning("Dropping feature %s" % k)
+        tf.logging.warning(f"Dropping feature {k}")
     return tf.data.Dataset.from_tensor_slices(new_example)
   return example
 
@@ -371,7 +371,7 @@ class Problem(object):
   def eval_metric_fns(self, model_hparams):
     del model_hparams
     metric_names = self.eval_metrics()
-    if not all([m in self.all_metrics_fns for m in metric_names]):
+    if any(m not in self.all_metrics_fns for m in metric_names):
       error_str = ("Unrecognized metric. Problem %s specified metrics "
                    "%s. Recognized metrics are %s.")
       raise ValueError(error_str % (self.name,
@@ -461,7 +461,7 @@ class Problem(object):
     elif split == DatasetSplit.TEST:
       return self.test_filepaths(output_dir, num_shards, shuffled)
     else:
-      raise ValueError("Unknown value for split: %s" % split)
+      raise ValueError(f"Unknown value for split: {split}")
 
   def filepattern(self, data_dir, mode, shard=None):
     """Get filepattern for data files for mode.
@@ -490,7 +490,7 @@ class Problem(object):
       assert mode == DatasetSplit.TEST
       suffix = "test"
 
-    return "%s-%s%s*" % (path, suffix, shard_str)
+    return f"{path}-{suffix}{shard_str}*"
 
   def __init__(self, was_reversed=False, was_copy=False):
     """Create a Problem.
@@ -722,10 +722,7 @@ class Problem(object):
     if data_items_to_decoders is None:
       data_items_to_decoders = {}
       for field in data_fields:
-        if data_fields[field].dtype is tf.string:
-          default_value = b""
-        else:
-          default_value = 0
+        default_value = b"" if data_fields[field].dtype is tf.string else 0
         data_items_to_decoders[field] = contrib.slim().tfexample_decoder.Tensor(
             field, default_value=default_value)
 
@@ -875,10 +872,10 @@ class Problem(object):
       (features_dict<str name, Tensor feature>, Tensor targets)
     """
     partition_id, num_partitions = self._dataset_partition(mode, config, params)
-    is_training = mode == tf.estimator.ModeKeys.TRAIN
     if config and config.use_tpu:
       num_threads = 64
     else:
+      is_training = mode == tf.estimator.ModeKeys.TRAIN
       num_threads = data_reader.cpu_count() if is_training else 1
     data_dir = data_dir or (hasattr(hparams, "data_dir") and hparams.data_dir)
     dataset_kwargs = dataset_kwargs or {}
@@ -991,17 +988,17 @@ def _reverse_problem_hparams(p_hparams):
   reversed_modality = {}
   for feature_name in p.modality:
     # Copy feature as-is.
-    if "target" not in feature_name and "input" not in feature_name:
-      reversed_modality[feature_name] = p.modality[feature_name]
-    else:
-      # Change "target" to "input" and vice-versa for this feature.
-      if "target" in feature_name:
-        reversed_feature_name = feature_name.replace("target", "input")
-      else:
-        assert "input" in feature_name, feature_name
-        reversed_feature_name = feature_name.replace("input", "target")
+    if "target" in feature_name:
+      reversed_feature_name = feature_name.replace("target", "input")
       reversed_modality[reversed_feature_name] = p.modality[feature_name]
 
+    elif "input" in feature_name:
+      assert "input" in feature_name, feature_name
+      reversed_feature_name = feature_name.replace("input", "target")
+      reversed_modality[reversed_feature_name] = p.modality[feature_name]
+
+    else:
+      reversed_modality[feature_name] = p.modality[feature_name]
   p.modality = reversed_modality
 
   # Swap vocab sizes.

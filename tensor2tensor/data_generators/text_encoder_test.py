@@ -94,9 +94,8 @@ class TokenTextEncoderTest(tf.test.TestCase):
 
   def test_reserved_tokens_in_corpus(self):
     """Test that we handle reserved tokens appearing in the corpus."""
-    corpus = "A B {} D E F {} G {}".format(text_encoder.EOS,
-                                           text_encoder.EOS,
-                                           text_encoder.PAD)
+    corpus = (
+        f"A B {text_encoder.EOS} D E F {text_encoder.EOS} G {text_encoder.PAD}")
 
     encoder = text_encoder.TokenTextEncoder(None, vocab_list=corpus.split())
 
@@ -125,7 +124,7 @@ class SubwordTextEncoderTest(tf.test.TestCase):
     alphabet = set(corpus) - {" "}
 
     original = "This is a coded sentence encoded by the SubwordTextEncoder."
-    token_counts.update(original.split(" "))
+    token_counts |= original.split(" ")
 
     encoder = text_encoder.SubwordTextEncoder.build_to_target_size(
         100, token_counts, 2, 10)
@@ -356,7 +355,7 @@ class SubwordTextEncoderTest(tf.test.TestCase):
     self.assertEqual(encoder.decode([2]), start_symbol)
     self.assertEqual(encoder.decode([3]), end_symbol)
 
-    self.assertEqual("hi%s" % start_symbol,
+    self.assertEqual(f"hi{start_symbol}",
                      encoder.decode(encoder.encode("hi") + [2]))
 
     # Make sure that we haven't messed up the ability to reconstruct.

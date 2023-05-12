@@ -84,8 +84,7 @@ def convert_predictions_to_image_summaries(hook_args):
         prediction["outputs"], tag="%d_output" % ind)
     input_summary = image_to_tf_summary_value(
         prediction["inputs"], tag="%d_input" % ind)
-    all_summaries.append(input_summary)
-    all_summaries.append(output_summary)
+    all_summaries.extend((input_summary, output_summary))
   return all_summaries
 
 
@@ -276,8 +275,7 @@ def encode_images_as_png(images):
       encoded_image_t = tf.image.encode_png(image_t)
       with tf.Session() as sess:
         for image in images:
-          enc_string = sess.run(encoded_image_t, feed_dict={image_t: image})
-          yield enc_string
+          yield sess.run(encoded_image_t, feed_dict={image_t: image})
 
 
 def image_generator(images, labels):

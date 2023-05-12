@@ -76,10 +76,10 @@ def concat_tfrecord_files(fnames, out_fname, rm_after=True):
     for fname in fnames:
       with tf.gfile.Open(fname, "rb") as in_f:
         while True:
-          read = in_f.read(1000)
-          if not read:
+          if read := in_f.read(1000):
+            out_f.write(read)
+          else:
             break
-          out_f.write(read)
       if rm_after:
         tf.gfile.Remove(fname)
 
@@ -98,7 +98,7 @@ def shard(items, num_shards):
   for i in range(remainder):
     sharded[i].append(items[start + i])
 
-  assert sum([len(fs) for fs in sharded]) == len(items)
+  assert sum(len(fs) for fs in sharded) == len(items)
   return sharded
 
 

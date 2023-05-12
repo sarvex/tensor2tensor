@@ -265,8 +265,7 @@ def local_global_attention(x,
         q_padding=q_padding,
         kv_padding=kv_padding,
         name="local_self_att")
-    y = tf.concat([y_global, y_local], axis=-1)
-    return y
+    return tf.concat([y_global, y_local], axis=-1)
 
 
 def full_self_attention(x,
@@ -492,9 +491,7 @@ def get_self_attention_bias(x):
   """
 
   x_shape = common_layers.shape_list(x)
-  self_attention_bias = common_attention.attention_bias_lower_triangle(
-      x_shape[1])
-  return self_attention_bias
+  return common_attention.attention_bias_lower_triangle(x_shape[1])
 
 
 def postprocess_image(x, rows, cols, hparams):
@@ -613,10 +610,11 @@ def prepare_decoder(targets, hparams):
   # Preprocess image
   x = prepare_image(targets, hparams, name="dec_channels")
   x_shape = common_layers.shape_list(x)
-  if (hparams.dec_attention_type == AttentionType.LOCAL_2D or
-      hparams.dec_attention_type == AttentionType.LOCAL_BLOCK):
+  if hparams.dec_attention_type in [
+      AttentionType.LOCAL_2D,
+      AttentionType.LOCAL_BLOCK,
+  ]:
     x = common_attention.right_shift_blockwise(x, hparams.query_shape)
-    x = add_pos_signals(x, hparams, "dec_pos")
   else:
     # Add position signals
     x = tf.reshape(x, [targets_shape[0],
@@ -624,7 +622,7 @@ def prepare_decoder(targets, hparams):
     x = common_layers.shift_right_3d(x)
     x = tf.reshape(x, [targets_shape[0],
                        x_shape[1], x_shape[2], hparams.hidden_size])
-    x = add_pos_signals(x, hparams, "dec_pos")
+  x = add_pos_signals(x, hparams, "dec_pos")
   x = common_layers.cast_like(x, targets)
   return x, x_shape[1], x_shape[2]
 
@@ -661,21 +659,20 @@ def create_output(decoder_output, rows, cols, targets, hparams):
   likelihood = getattr(hparams, "likelihood", DistributionType.CAT)
   if hparams.mode == tf.estimator.ModeKeys.PREDICT:
     y = tf.reshape(decoded_image, [batch, -1, 1, 1, depth])
-    output = y[:, :rows, :, :, :]
+    return y[:, :rows, :, :, :]
   elif likelihood == DistributionType.CAT:
     # Unpack the cols dimension of the Categorical.
     channels = hparams.num_channels
-    output = tf.reshape(decoded_image,
-                        [batch, rows, cols // channels, channels, depth])
+    return tf.reshape(decoded_image,
+                      [batch, rows, cols // channels, channels, depth])
   else:
-    output = decoded_image
-  return output
+    return decoded_image
 
 
 def get_channel_embeddings(io_depth, targets, hidden_size, name="channel"):
   """Get separate embedding for each of the channels."""
   targets_split = tf.split(targets, io_depth, axis=3)
-  rgb_embedding_var = tf.get_variable("rgb_target_emb_%s" % name,
+  rgb_embedding_var = tf.get_variable(f"rgb_target_emb_{name}",
                                       [256 * io_depth, hidden_size])
   rgb_embedding_var = tf.identity(rgb_embedding_var)
   rgb_embedding_var *= float(hidden_size)**0.5

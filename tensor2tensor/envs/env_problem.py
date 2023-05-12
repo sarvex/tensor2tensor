@@ -534,7 +534,7 @@ class EnvProblem(Env, problem.Problem):
     self._agent_id = agent_id
 
   def dataset_filename(self):
-    return "{}-{}".format(self.name, self.agent_id)
+    return f"{self.name}-{self.agent_id}"
 
   @property
   def num_shards(self):
@@ -651,4 +651,4 @@ class EnvProblem(Env, problem.Problem):
         print("trajectory isn't active.")
         continue
       last_obs = t.last_time_step.observation
-      print(str(last_obs))
+      print(last_obs)

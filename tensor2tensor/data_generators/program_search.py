@@ -68,8 +68,7 @@ class ProgramSearchAlgolisp(text_problems.Text2TextProblem):
     it = iter(iterable)
     for e in it:
       if isinstance(e, (list, tuple)):
-        for f in ProgramSearchAlgolisp._flatten_target_programs(e):
-          yield f
+        yield from ProgramSearchAlgolisp._flatten_target_programs(e)
       else:
         yield e
     yield "]"
@@ -86,12 +85,12 @@ class ProgramSearchAlgolisp(text_problems.Text2TextProblem):
     # Make another dictionary, to return only the features we want.
     return {
         "inputs":
-            " ".join(line_json_dict["text"]),
+        " ".join(line_json_dict["text"]),
         "targets":
-            " ".join([
-                i for i in ProgramSearchAlgolisp._flatten_target_programs(
-                    line_json_dict["short_tree"])
-            ])
+        " ".join(
+            list(
+                ProgramSearchAlgolisp._flatten_target_programs(
+                    line_json_dict["short_tree"]))),
     }
 
   @property
@@ -106,7 +105,7 @@ class ProgramSearchAlgolisp(text_problems.Text2TextProblem):
 
     # Sanity check.
     if url is None:
-      tf.logging.fatal("Unknown dataset_split passed: {}".format(dataset_split))
+      tf.logging.fatal(f"Unknown dataset_split passed: {dataset_split}")
 
     # Download the data, if it doesn't already exist.
     return generator_utils.maybe_download(tmp_dir,

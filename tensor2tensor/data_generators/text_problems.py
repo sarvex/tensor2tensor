@@ -214,15 +214,14 @@ class Text2TextProblem(problem.Problem):
 
   @property
   def vocab_filename(self):
-    other_problem = self.use_vocab_from_other_problem
-    if other_problem:
+    if other_problem := self.use_vocab_from_other_problem:
       return other_problem.vocab_filename
     if self.vocab_type == VocabType.SUBWORD:
       return "vocab.%s.%d.%s" % (self.dataset_filename(),
                                  self.approx_vocab_size,
                                  VocabType.SUBWORD)
     else:
-      return "vocab.%s.%s" % (self.dataset_filename(), VocabType.TOKEN)
+      return f"vocab.{self.dataset_filename()}.{VocabType.TOKEN}"
 
   @property
   def use_vocab_from_other_problem(self):
@@ -243,10 +242,9 @@ class Text2TextProblem(problem.Problem):
       if force_get:
         vocab_filepath = os.path.join(data_dir, self.vocab_filename)
         encoder = text_encoder.SubwordTextEncoder(vocab_filepath)
+      elif other_problem := self.use_vocab_from_other_problem:
+        return other_problem.get_or_create_vocab(data_dir, tmp_dir, force_get)
       else:
-        other_problem = self.use_vocab_from_other_problem
-        if other_problem:
-          return other_problem.get_or_create_vocab(data_dir, tmp_dir, force_get)
         encoder = generator_utils.get_or_generate_vocab_inner(
             data_dir, self.vocab_filename, self.approx_vocab_size,
             self.generate_text_for_vocab(data_dir, tmp_dir),
@@ -258,8 +256,7 @@ class Text2TextProblem(problem.Problem):
       encoder = text_encoder.TokenTextEncoder(vocab_filename,
                                               replace_oov=self.oov_token)
     else:
-      raise ValueError(
-          "Unrecognized VocabType: %s" % str(self.vocab_type))
+      raise ValueError(f"Unrecognized VocabType: {str(self.vocab_type)}")
     return encoder
 
   def _pack_fn(self):
@@ -710,8 +707,8 @@ def txt_and_label_iterator(txt_path):
     for line in f:
       results = problem_pattern_without_vocab_size.search(line.strip())
       try:
-        line = results.group(1)
-        extra_label = int(results.group(2))
+        line = results[1]
+        extra_label = int(results[2])
       except AttributeError:
         raise ValueError(
             "Please provide the file in the right format, with each line having"
@@ -776,10 +773,7 @@ def text2class_txt_iterator(source_txt_path, label_txt_path, class_strs=None):
   for inputs, label in zip(
       txt_line_iterator(source_txt_path), txt_line_iterator(label_txt_path)):
     label = label.strip()
-    if class_strs:
-      label = class_strs[label]
-    else:
-      label = int(label)
+    label = class_strs[label] if class_strs else int(label)
     yield {"inputs": inputs, "label": label}
 
 
@@ -946,8 +940,7 @@ class Text2textTmpdirTokens(Text2textTmpdir):
       for line in vocab_file:
         token = line.strip()
         vocab_list.append(token)
-    token_encoder = text_encoder.TokenTextEncoder(None, vocab_list=vocab_list)
-    return token_encoder
+    return text_encoder.TokenTextEncoder(None, vocab_list=vocab_list)
 
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     vocab_filepath = os.path.join(data_dir, self.vocab_filename)
@@ -1065,7 +1058,7 @@ class ChoppedTextProblem(Text2SelfProblem):
     chars_total = 0
     for fname in filepaths:
       chars_this_file = 0
-      tf.logging.info("reading file %s" % fname)
+      tf.logging.info(f"reading file {fname}")
       for text in self.filepath_to_unicode_strings(fname):
         if (max_chars_per_file and
             chars_this_file + len(text) > max_chars_per_file):
@@ -1145,7 +1138,7 @@ class ChoppedTextProblem(Text2SelfProblem):
     Returns:
       shard or shards for which data was generated.
     """
-    tf.logging.info("generate_data task_id=%s" % task_id)
+    tf.logging.info(f"generate_data task_id={task_id}")
     encoder = self.get_or_create_vocab(data_dir, tmp_dir)
     assert task_id >= 0 and task_id < self.num_generate_tasks
     if task_id < self.num_train_shards:
@@ -1247,11 +1240,7 @@ class DistributedText2TextProblem(Text2TextProblem):
 
   @property
   def num_output_shards(self):
-    # Returns the total number of output shards.
-    num_output_shards = 0
-    for split in self.dataset_splits:
-      num_output_shards += split["shards"]
-    return num_output_shards
+    return sum(split["shards"] for split in self.dataset_splits)
 
   @property
   def split_to_input_filenames(self):
@@ -1388,7 +1377,7 @@ class DistributedText2TextProblem(Text2TextProblem):
 
   def generate_data(self, data_dir, tmp_dir, task_id=-1):
     # task_id should be in [0, self.num_output_shards)
-    assert (0 <= task_id) and (task_id < self.num_output_shards)
+    assert 0 <= task_id < self.num_output_shards
 
     # A task_id is only supposed to write only one output shard, it can operate
     # over multiple *input* shards.

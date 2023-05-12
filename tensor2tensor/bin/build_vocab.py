@@ -59,7 +59,7 @@ def main(_):
   tf.gfile.MakeDirs(data_dir)
   tf.gfile.MakeDirs(tmp_dir)
 
-  tf.logging.info("Saving vocabulary to data_dir: %s" % data_dir)
+  tf.logging.info(f"Saving vocabulary to data_dir: {data_dir}")
 
   problem.get_or_create_vocab(data_dir, tmp_dir)
 

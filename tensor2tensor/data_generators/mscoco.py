@@ -95,7 +95,7 @@ def mscoco_generator(data_dir,
         vocab_symbolizer = text_encoder.SubwordTextEncoder(vocab_filepath)
         return vocab_symbolizer
       else:
-        raise ValueError("Vocab file does not exist: %s" % vocab_filepath)
+        raise ValueError(f"Vocab file does not exist: {vocab_filepath}")
     return None
 
   vocab_symbolizer = get_vocab()
@@ -166,11 +166,8 @@ class ImageMsCocoCharacters(image_utils.Image2TextProblem):
     return imagenet.imagenet_preprocess_example(example, mode)
 
   def generator(self, data_dir, tmp_dir, is_training):
-    if is_training:
-      return mscoco_generator(data_dir, tmp_dir, True, 80000)
-    else:
-      return mscoco_generator(data_dir, tmp_dir, False, 40000)
-    raise NotImplementedError()
+    return (mscoco_generator(data_dir, tmp_dir, True, 80000) if is_training else
+            mscoco_generator(data_dir, tmp_dir, False, 40000))
 
 
 @registry.register_problem

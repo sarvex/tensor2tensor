@@ -81,8 +81,7 @@ class NGram(tf.keras.layers.Layer):
 
   def compute_output_shape(self, input_shape):
     input_shape = tf.TensorShape(input_shape)
-    num_ngrams = sum([self.input_dim**n
-                      for n in range(self.minval, self.maxval)])
+    num_ngrams = sum(self.input_dim**n for n in range(self.minval, self.maxval))
     return input_shape[:-1].concatenate(num_ngrams)
 
   def get_config(self):

@@ -42,14 +42,11 @@ class GithubFunctionDocstring(text_problems.Text2TextProblem):
 
   @property
   def pair_files_list(self):
-    files = []
-    for i in range(self.NUM_SHARDS):
-      files.append([
-          "{}/func-doc-pairs-{:05}-of-{:05}.csv".format(self.base_url, i,
-                                                        self.NUM_SHARDS),
-          ("func-doc-pairs-{:05}-of-{:05}.csv".format(i, self.NUM_SHARDS),)
-      ])
-    return files
+    return [[
+        "{}/func-doc-pairs-{:05}-of-{:05}.csv".format(self.base_url, i,
+                                                      self.NUM_SHARDS),
+        ("func-doc-pairs-{:05}-of-{:05}.csv".format(i, self.NUM_SHARDS), ),
+    ] for i in range(self.NUM_SHARDS)]
 
   @property
   def is_generate_per_split(self):
@@ -87,7 +84,7 @@ class GithubFunctionDocstring(text_problems.Text2TextProblem):
     ]
 
     for pairs_file in csv_files:
-      tf.logging.debug("Reading {}".format(pairs_file))
+      tf.logging.debug(f"Reading {pairs_file}")
       with open(pairs_file, "r") as csv_file:
         for line in csv_file:
           reader = csv.reader(StringIO(line))

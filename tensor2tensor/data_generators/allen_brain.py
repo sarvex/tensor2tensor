@@ -98,12 +98,14 @@ def _get_case_file_paths(tmp_dir, case, training_fraction=0.95):
       leave no examples for eval.
   """
 
-  paths = tf.gfile.Glob("%s/*.jpg" % tmp_dir)
+  paths = tf.gfile.Glob(f"{tmp_dir}/*.jpg")
 
   if not paths:
-    raise ValueError("Search of tmp_dir (%s) " % tmp_dir,
-                     "for subimage paths yielded an empty list, ",
-                     "can't proceed with returning training/eval split.")
+    raise ValueError(
+        f"Search of tmp_dir ({tmp_dir}) ",
+        "for subimage paths yielded an empty list, ",
+        "can't proceed with returning training/eval split.",
+    )
 
   split_index = int(math.floor(len(paths)*training_fraction))
 
@@ -116,10 +118,7 @@ def _get_case_file_paths(tmp_dir, case, training_fraction=0.95):
                                      training_fraction,
                                      split_index))
 
-  if case:
-    return paths[:split_index]
-  else:
-    return paths[split_index:]
+  return paths[:split_index] if case else paths[split_index:]
 
 
 def maybe_download_image_dataset(image_ids, target_dir):
@@ -136,22 +135,19 @@ def maybe_download_image_dataset(image_ids, target_dir):
 
   for i, image_id in enumerate(image_ids):
 
-    destination = os.path.join(target_dir, "%s.jpg" % i)
-    tmp_destination = "%s.temp" % destination
+    destination = os.path.join(target_dir, f"{i}.jpg")
+    source_url = (
+        f"http://api.brain-map.org/api/v2/section_image_download/{image_id}")
 
-    source_url = ("http://api.brain-map.org/api/v2/"
-                  "section_image_download/%s" % image_id)
-
+    tmp_destination = f"{destination}.temp"
     if tf.gfile.Exists(destination):
-      tf.logging.info("Image with ID already present, "
-                      "skipping download (%s of %s)." % (
-                          i+1, num_images
-                      ))
+      tf.logging.info(
+          f"Image with ID already present, skipping download ({i + 1} of {num_images})."
+      )
       continue
 
-    tf.logging.info("Downloading image with id %s (%s of %s)" % (
-        image_id, i+1, num_images
-    ))
+    tf.logging.info(
+        f"Downloading image with id {image_id} ({i + 1} of {num_images})")
 
     response = requests.get(source_url, stream=True)
 
@@ -221,7 +217,7 @@ def _generator(tmp_dir, training, size=_BASE_EXAMPLE_IMAGE_SIZE,
 
   image_obj = PIL_Image()
 
-  tf.logging.info("Loaded case file paths (n=%s)" % len(image_files))
+  tf.logging.info(f"Loaded case file paths (n={len(image_files)})")
   height = size
   width = size
 
@@ -360,12 +356,11 @@ class Img2imgAllenBrain(problem.Problem):
     return data_fields, data_items_to_decoders
 
   def eval_metrics(self):
-    eval_metrics = [
+    return [
         metrics.Metrics.ACC,
         metrics.Metrics.ACC_PER_SEQ,
-        metrics.Metrics.NEG_LOG_PERPLEXITY
+        metrics.Metrics.NEG_LOG_PERPLEXITY,
     ]
-    return eval_metrics
 
   def generate_data(self, data_dir, tmp_dir, task_id=-1):
     generator_utils.generate_dataset_and_shuffle(

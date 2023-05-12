@@ -74,105 +74,94 @@ class DialogCornell32k(dialog_abstract.DialogAbstract):
 
     # Open the 6 files.
     trainsource, traintarget, devsource, devtarget, testsource, testtarget = \
-        self.open_6_files()
+          self.open_6_files()
 
-    # Open the raw data.
-    movie_lines = open(
-        os.path.join(self._raw_data, 'movie_lines.txt'), errors='ignore')
-    dialog_list = self.extract_dialog_ids()
+    with open(
+        os.path.join(self._raw_data, 'movie_lines.txt'), errors='ignore') as movie_lines:
+      dialog_list = self.extract_dialog_ids()
 
-    vocabulary = collections.Counter()
-    line_dict = {}
-    number_of_lines = 0
-    # Iterate through file.
-    for line in movie_lines:
-      if number_of_lines % 10000 == 0:
-        print('problem_log: Parsed ' + str(number_of_lines) + ' lines.')
+      vocabulary = collections.Counter()
+      number_of_lines = 0
+      line_dict = {}
+        # Iterate through file.
+      for line in movie_lines:
+        if number_of_lines % 10000 == 0:
+          print(f'problem_log: Parsed {str(number_of_lines)} lines.')
 
-      line = line.split(' +++$+++ ')
-      dialog_id = line[0]
-      line = line[4].lower()
+        line = line.split(' +++$+++ ')
+        dialog_id = line[0]
+        line = line[4].lower()
 
-      # Do some cleaning.
-      line = self.clean_line(line)
-      line_dict[dialog_id] = line
+        # Do some cleaning.
+        line = self.clean_line(line)
+        line_dict[dialog_id] = line
 
-      number_of_lines += 1
-      # Check if we reached the desired dataset size.
-      if (self.targeted_dataset_size != 0 and
-          self.targeted_dataset_size < number_of_lines):
-        break
+        number_of_lines += 1
+        # Check if we reached the desired dataset size.
+        if (self.targeted_dataset_size != 0 and
+            self.targeted_dataset_size < number_of_lines):
+          break
 
-    counter = 0
-    dataset_split_counter = 0
-    # Save the actual dialogs.
-    for dialog in dialog_list:
-      if counter % 10000 == 0:
-        print('problem_log: Saved ' +
-              str(counter) + '/' + str(len(dialog_list)) + ' dialogs.')
+      counter = 0
+      dataset_split_counter = 0
+        # Save the actual dialogs.
+      for dialog in dialog_list:
+        if counter % 10000 == 0:
+          print(f'problem_log: Saved {str(counter)}/{len(dialog_list)} dialogs.')
 
-      dataset_split_counter += 1
-      i = 0
-      # Save one utterance.
-      for utterance in dialog:
-        if (utterance != dialog[-1] and
-            dialog[i + 1] != 'L211194' and
-            dialog[i + 1] != 'L1045'):
-          source_line = line_dict[utterance] + '\n'
-          target_line = line_dict[dialog[i + 1]] + '\n'
+        dataset_split_counter += 1
+            # Save one utterance.
+        for i, utterance in enumerate(dialog):
+          if (utterance != dialog[-1] and
+              dialog[i + 1] != 'L211194' and
+              dialog[i + 1] != 'L1045'):
+            source_line = line_dict[utterance] + '\n'
+            target_line = line_dict[dialog[i + 1]] + '\n'
 
-          # Save to the files according to dataset split.
-          if dataset_split_counter <= self.dataset_split['train']:
-            # Build vocabulary.
-            words = source_line.split()
-            for word in words:
-              vocabulary[word] = vocabulary.get(word, 0) + 1
+            # Save to the files according to dataset split.
+            if dataset_split_counter <= self.dataset_split['train']:
+              # Build vocabulary.
+              words = source_line.split()
+              for word in words:
+                vocabulary[word] = vocabulary.get(word, 0) + 1
 
-            trainsource.write(source_line)
-            traintarget.write(target_line)
+              trainsource.write(source_line)
+              traintarget.write(target_line)
 
-          elif dataset_split_counter <= (self.dataset_split['train'] +
-                                         self.dataset_split['val']):
-            devsource.write(source_line)
-            devtarget.write(target_line)
-          else:
-            testsource.write(source_line)
-            testtarget.write(target_line)
-        i += 1
+            elif dataset_split_counter <= (self.dataset_split['train'] +
+                                           self.dataset_split['val']):
+              devsource.write(source_line)
+              devtarget.write(target_line)
+            else:
+              testsource.write(source_line)
+              testtarget.write(target_line)
+        # Reset the split counter if we reached 100%.
+        if dataset_split_counter == 100:
+          dataset_split_counter = 0
+        counter += 1
 
-      # Reset the split counter if we reached 100%.
-      if dataset_split_counter == 100:
-        dataset_split_counter = 0
-      counter += 1
-
-    # Close the files.
-    self.close_n_files([trainsource,
-                        traintarget,
-                        devsource,
-                        devtarget,
-                        testsource,
-                        testtarget])
-    movie_lines.close()
-
+      # Close the files.
+      self.close_n_files([trainsource,
+                          traintarget,
+                          devsource,
+                          devtarget,
+                          testsource,
+                          testtarget])
     # Save the vocabulary.
     self.save_vocab(vocabulary)
 
   # Extract the dialog ids from the dialog file.
   def extract_dialog_ids(self):
-    dialogs = open(os.path.join(self._raw_data, 'movie_conversations.txt'),
-                   errors='ignore')
+    with open(os.path.join(self._raw_data, 'movie_conversations.txt'),
+                   errors='ignore') as dialogs:
+      dialog_list = []
+        # Each line contains a dialog.
+      for line in dialogs:
+        line = line.split(' +++$+++ ')
+        line = line[3].split(',')
 
-    dialog_list = []
-    # Each line contains a dialog.
-    for line in dialogs:
-      line = line.split(' +++$+++ ')
-      line = line[3].split(',')
+        for i, item in enumerate(line):
+          line[i] = re.sub('[^A-Z0-9]', '', item)
+        dialog_list.append(line)
 
-      i = 0
-      for item in line:
-        line[i] = re.sub('[^A-Z0-9]', '', item)
-        i += 1
-      dialog_list.append(line)
-
-    dialogs.close()
     return dialog_list

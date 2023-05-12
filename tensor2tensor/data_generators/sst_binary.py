@@ -69,9 +69,9 @@ class SentimentSSTBinary(text_problems.Text2ClassProblem):
     return ["neg", "pos"]
 
   def _maybe_download_corpora(self, tmp_dir):
-    sst_binary_filename = "SST-2.zip"
     sst_binary_finalpath = os.path.join(tmp_dir, "SST-2")
     if not tf.gfile.Exists(sst_binary_finalpath):
+      sst_binary_filename = "SST-2.zip"
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, sst_binary_filename, self._SST2_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -98,8 +98,7 @@ class SentimentSSTBinary(text_problems.Text2ClassProblem):
       filesplit = "dev.tsv"
 
     filename = os.path.join(sst_binary_dir, filesplit)
-    for example in self.example_generator(filename):
-      yield example
+    yield from self.example_generator(filename)
 
 
 @registry.register_problem

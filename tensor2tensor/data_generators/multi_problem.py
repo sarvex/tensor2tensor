@@ -308,10 +308,10 @@ class MultiProblem(problem.Problem):
           thresholds = hparams.multiproblem_per_task_threshold.split(",")
           thresholds = [float(t) for t in thresholds]  # Convert to floats.
           thresholds_sum = sum(thresholds)
-          tf.logging.info("Per-task thresholds: %s." % str(thresholds))
+          tf.logging.info(f"Per-task thresholds: {thresholds}.")
           thresholds = [t / thresholds_sum for t in thresholds]  # Normalize.
           thresholds = [sum(thresholds[:i+1]) for i in range(len(thresholds))]
-          tf.logging.info("Per-task threshold sums: %s." % str(thresholds))
+          tf.logging.info(f"Per-task threshold sums: {thresholds}.")
           if len(thresholds) != len(self.task_list):
             tf.logging.warn("Specified %d thresholds but encountered %d tasks."
                             % (len(thresholds), len(self.task_list)))
@@ -372,15 +372,18 @@ class MultiProblem(problem.Problem):
     return single_mtl_dataset
 
   def eval_metrics(self):
-    for task in self.task_list:
-      if "summarize" in task.name:
-        return [
-            metrics.Metrics.ACC, metrics.Metrics.NEG_LOG_PERPLEXITY,
-            metrics.Metrics.ROUGE_2_F, metrics.Metrics.ROUGE_L_F
-        ]
-    return [
-        metrics.Metrics.ACC, metrics.Metrics.NEG_LOG_PERPLEXITY,
-    ]
+    return next(
+        ([
+            metrics.Metrics.ACC,
+            metrics.Metrics.NEG_LOG_PERPLEXITY,
+            metrics.Metrics.ROUGE_2_F,
+            metrics.Metrics.ROUGE_L_F,
+        ] for task in self.task_list if "summarize" in task.name),
+        [
+            metrics.Metrics.ACC,
+            metrics.Metrics.NEG_LOG_PERPLEXITY,
+        ],
+    )
 
   def update_task_ids(self, encoder_vocab_size):
     """Generate task_ids for each problem.
@@ -409,9 +412,8 @@ class MultiProblem(problem.Problem):
     """
     num = 0
     for task in self.task_list:
-      if hasattr(task, "num_classes"):
-        if num < task.num_classes:
-          num = task.num_classes
+      if hasattr(task, "num_classes") and num < task.num_classes:
+        num = task.num_classes
 
     return num
 
@@ -431,7 +433,6 @@ def aggregate_task_losses(hparams,
                                     feature_name=feature_name,
                                     feature=feature)
 
-  summaries = []
   main_task_id = hparams.problem.task_list[0].task_id
   vocab_size = problem_hparams.vocab_size[feature_name]
   if vocab_size is not None and hasattr(hparams, "vocab_divisor"):
@@ -447,8 +448,7 @@ def aggregate_task_losses(hparams,
       hparams, vocab_size, weights_fn)
 
   loss_val = loss_num / tf.maximum(1.0, loss_den)
-  summaries.append([hparams.problem.task_list[0].name+"_loss", loss_val])
-
+  summaries = [[f"{hparams.problem.task_list[0].name}_loss", loss_val]]
   # Since the losses may undergo rescaling, they cannot exist as separate
   # numerators and denominators. Set the denominators to 1 in order to faciliate
   # loss averaging.
@@ -465,7 +465,7 @@ def aggregate_task_losses(hparams,
 
     # Unscaled sequence loss.
     seq_loss = seq_loss_num / tf.maximum(1.0, seq_loss_den)
-    summaries.append([task.name+"_seq_loss", seq_loss])
+    summaries.append([f"{task.name}_seq_loss", seq_loss])
 
     if hasattr(task, "num_classes"):
       # Loss only from the classification label.
@@ -477,7 +477,7 @@ def aggregate_task_losses(hparams,
 
       # Unscaled classification label loss.
       label_loss = label_loss_num / tf.maximum(1.0, label_loss_den)
-      summaries.append([task.name+"_label_loss", label_loss])
+      summaries.append([f"{task.name}_label_loss", label_loss])
 
       # Scaling.
       if hparams.multiproblem_reweight_label_loss:
@@ -499,7 +499,7 @@ def aggregate_task_losses(hparams,
 
       # Unscaled target sequence loss.
       target_loss = target_loss_num / tf.maximum(1.0, target_loss_den)
-      summaries.append([task.name+"_target_loss", target_loss])
+      summaries.append([f"{task.name}_target_loss", target_loss])
 
       # Scaling.
       if hparams.multiproblem_reweight_label_loss:
@@ -511,7 +511,7 @@ def aggregate_task_losses(hparams,
 
       loss_den_ = target_loss_den
 
-    summaries.append([task.name+"_loss", task_loss_val])
+    summaries.append([f"{task.name}_loss", task_loss_val])
     # Adding 1 to the loss den for each task leads to averaging task losses.
     # TODO(urvashik): Fix combination with other task losses - weighted
     # average based on the number of examples from that task.
@@ -548,6 +548,6 @@ def aggregate_task_lm_losses(hparams,
     loss_den += loss_den_
 
     loss_val = loss_num_ / tf.maximum(1.0, loss_den_)
-    summaries.append([task.name+"_loss", loss_val])
+    summaries.append([f"{task.name}_loss", loss_val])
 
   return loss_num, loss_den, summaries

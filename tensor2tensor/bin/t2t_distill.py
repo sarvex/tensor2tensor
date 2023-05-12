@@ -141,8 +141,7 @@ def create_teacher_experiment(run_config, hparams, argv):
 
   hparams.distill_phase = "train"
   exp_fn = t2t_trainer.create_experiment_fn()
-  exp = exp_fn(run_config, hparams)
-  return exp
+  return exp_fn(run_config, hparams)
 
 
 def create_student_experiment(run_config, hparams, argv):
@@ -169,8 +168,7 @@ def create_student_experiment(run_config, hparams, argv):
   hparams.add_hparam("student_dir", FLAGS.student_dir)
   hparams.distill_phase = "distill"
   exp_fn = t2t_trainer.create_experiment_fn()
-  exp = exp_fn(run_config, hparams)
-  return exp
+  return exp_fn(run_config, hparams)
 
 
 def create_experiment_fn(argv, train_teacher):

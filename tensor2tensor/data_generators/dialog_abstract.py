@@ -56,7 +56,7 @@ class DialogAbstract(text_problems.Text2TextProblem):
 
   @property
   def vocab_filename(self):
-    return 'vocab.chatbot.' + str(self.targeted_vocab_size)
+    return f'vocab.chatbot.{str(self.targeted_vocab_size)}'
 
   @property
   def oov_token(self):
@@ -161,8 +161,8 @@ class DialogAbstract(text_problems.Text2TextProblem):
     """
 
     # Build the source and target paths.
-    sourcepath = os.path.join(self._data_dir, train_mode + 'Source.txt')
-    targetpath = os.path.join(self._data_dir, train_mode + 'Target.txt')
+    sourcepath = os.path.join(self._data_dir, f'{train_mode}Source.txt')
+    targetpath = os.path.join(self._data_dir, f'{train_mode}Target.txt')
 
     # If raw data dir doesn't exist, create it.
     if not os.path.exists(self._raw_data_dir):
@@ -176,30 +176,30 @@ class DialogAbstract(text_problems.Text2TextProblem):
             'If you want to rebuild these files, delete them first.')
       return
 
-    # Check whether the raw data is extracted to the raw_data_dir folder.
     elif os.path.exists(self._raw_data):
       print('problem_log: No source, target or vocab files found in ' +
             self._data_dir + '.')
-      print('problem_log: Extracted raw data is in ' + self._raw_data_dir +
-            '. Proceeding with creating source, target and vocab files.')
+      print(
+          f'problem_log: Extracted raw data is in {self._raw_data_dir}. Proceeding with creating source, target and vocab files.'
+      )
       self.create_data(train_mode)
 
-    # Check whether the data is downloaded in the raw_data_dir_folder.
     elif os.path.exists(self._zipped_data):
       print('problem_log: No source, target or vocab files found in ' +
             self._data_dir + '.')
       print('problem_log: No extracted raw data found in ' +
             self._raw_data_dir + '.')
-      print('problem_log: Unextracted raw data is in ' + self._raw_data_dir +
-            '. Extracting and creating source, target and vocab files.')
+      print(
+          f'problem_log: Unextracted raw data is in {self._raw_data_dir}. Extracting and creating source, target and vocab files.'
+      )
       self.extract_data(train_mode)
 
     else:
       print('problem_log: No source, target or vocab files found in ' +
             self._data_dir + '.')
-      print('problem_log: No raw data found in ' + self._raw_data_dir +
-            '. Proceeding with downloading the data, extracting it, ' +
-            'and creating source, target and vocab files.')
+      print(
+          f'problem_log: No raw data found in {self._raw_data_dir}. Proceeding with downloading the data, extracting it, and creating source, target and vocab files.'
+      )
       self.download_data(train_mode)
 
   def download_data(self, train_mode):
@@ -218,7 +218,7 @@ class DialogAbstract(text_problems.Text2TextProblem):
           f.flush()
 
     # Next step is extracting the data.
-    print('problem_log: Extracting data to ' + self._zipped_data + '.')
+    print(f'problem_log: Extracting data to {self._zipped_data}.')
     self.extract_data(train_mode)
 
   def extract_data(self, train_mode):
@@ -233,8 +233,8 @@ class DialogAbstract(text_problems.Text2TextProblem):
     elif self._zipped_data[-3:] == 'zip':
       zip_file = zipfile.ZipFile(self._zipped_data, 'r')
     else:
-      print('problem_log: ' + self._zipped_data +
-            ' is not a .zip or .gz file, so I can\'t extract it.')
+      print((f'problem_log: {self._zipped_data}' +
+             ' is not a .zip or .gz file, so I can\'t extract it.'))
 
     zip_file.extractall(self._raw_data_dir)
     zip_file.close()
@@ -331,8 +331,8 @@ class DialogAbstract(text_problems.Text2TextProblem):
     print('problem_log: ' +
           self.mode[data_split] + ' data generation activated.')
 
-    s_path = os.path.join(data_dir, self.mode[data_split] + 'Source.txt')
-    t_path = os.path.join(data_dir, self.mode[data_split] + 'Target.txt')
+    s_path = os.path.join(data_dir, f'{self.mode[data_split]}Source.txt')
+    t_path = os.path.join(data_dir, f'{self.mode[data_split]}Target.txt')
 
     # Open the files and yield source-target lines.
     with tf.gfile.GFile(s_path, mode='r') as source_file:
@@ -348,16 +348,13 @@ class DialogAbstract(text_problems.Text2TextProblem):
     Args:
       vocab: dict
     """
-    voc_file = open(os.path.join(self._data_dir, self.vocab_file), 'w')
-
-    # Put the reserved tokens in.
-    voc_file.write('<pad>\n')
-    voc_file.write('<EOS>\n')
-    for word, _ in vocab.most_common(self.targeted_vocab_size - 3):
-      voc_file.write(word + '\n')
-    voc_file.write('<unk>')
-
-    voc_file.close()
+    with open(os.path.join(self._data_dir, self.vocab_file), 'w') as voc_file:
+      # Put the reserved tokens in.
+      voc_file.write('<pad>\n')
+      voc_file.write('<EOS>\n')
+      for word, _ in vocab.most_common(self.targeted_vocab_size - 3):
+        voc_file.write(word + '\n')
+      voc_file.write('<unk>')
 
   # Open the 6 files to write the processed data into.
   def open_6_files(self):

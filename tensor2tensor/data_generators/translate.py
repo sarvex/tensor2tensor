@@ -71,10 +71,13 @@ class TranslateProblem(text_problems.Text2TextProblem):
       tag = "train"
       datatypes_to_clean = self.datatypes_to_clean
     data_path = compile_data(
-        tmp_dir, datasets, "%s-compiled-%s" % (self.name, tag),
-        datatypes_to_clean=datatypes_to_clean)
+        tmp_dir,
+        datasets,
+        f"{self.name}-compiled-{tag}",
+        datatypes_to_clean=datatypes_to_clean,
+    )
 
-    return custom_iterator(data_path + ".lang1", data_path + ".lang2")
+    return custom_iterator(f"{data_path}.lang1", f"{data_path}.lang2")
 
   def generate_text_for_vocab(self, data_dir, tmp_dir):
     return generator_utils.generate_lines_for_vocab(tmp_dir,
@@ -96,13 +99,12 @@ def compute_bleu_summaries(hook_args):
   """
   decode_hparams = hook_args.decode_hparams
 
-  if not (decode_hparams.decode_reference and decode_hparams.decode_to_file):
+  if not decode_hparams.decode_reference or not decode_hparams.decode_to_file:
     return None
 
-  values = []
   bleu = 100 * bleu_hook.bleu_wrapper(
       decode_hparams.decode_reference, decode_hparams.decode_to_file)
-  values.append(tf.Summary.Value(tag="BLEU", simple_value=bleu))
+  values = [tf.Summary.Value(tag="BLEU", simple_value=bleu)]
   tf.logging.info("%s: BLEU = %6.2f" % (decode_hparams.decode_to_file, bleu))
   if hook_args.hparams.mlperf_mode:
     current_step = decode_hparams.mlperf_decode_step
@@ -142,10 +144,7 @@ def _preprocess_sgm(line, is_sgm):
 
 
 def _clean_sentences(sentence_pairs):
-  res_pairs = []
-  for cleaned in cleaner_en_xx.clean_en_xx_pairs(sentence_pairs):
-    res_pairs.append(cleaned)
-  return res_pairs
+  return list(cleaner_en_xx.clean_en_xx_pairs(sentence_pairs))
 
 
 def _tmx_to_source_target(tmx_file, source_resfile, target_resfile,
@@ -164,8 +163,8 @@ def compile_data(tmp_dir, datasets, filename, datatypes_to_clean=None):
   """Concatenates all `datasets` and saves to `filename`."""
   datatypes_to_clean = datatypes_to_clean or []
   filename = os.path.join(tmp_dir, filename)
-  lang1_fname = filename + ".lang1"
-  lang2_fname = filename + ".lang2"
+  lang1_fname = f"{filename}.lang1"
+  lang2_fname = f"{filename}.lang2"
   if tf.gfile.Exists(lang1_fname) and tf.gfile.Exists(lang2_fname):
     tf.logging.info("Skipping compile data, found files:\n%s\n%s", lang1_fname,
                     lang2_fname)
@@ -289,8 +288,7 @@ class TranslateDistillProblem(TranslateProblem):
     # We assume that vocab file is present in data_dir directory where the
     # data generated will be stored.
     vocab_filepath = os.path.join(data_dir, self.vocab_filename)
-    encoder = text_encoder.SubwordTextEncoder(vocab_filepath)
-    return encoder
+    return text_encoder.SubwordTextEncoder(vocab_filepath)
 
   def generate_encoded_samples(self, data_dir, tmp_dir, dataset_split):
     generator = self.generate_samples(data_dir, tmp_dir, dataset_split)
@@ -309,9 +307,9 @@ class TranslateDistillProblem(TranslateProblem):
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     data_path = self.source_data_files(dataset_split)
     assert tf.gfile.Exists(data_path)
-    return text_problems.text2text_distill_iterator(data_path + "inputs",
-                                                    data_path + "gold",
-                                                    data_path + "prediction")
+    return text_problems.text2text_distill_iterator(f"{data_path}inputs",
+                                                    f"{data_path}gold",
+                                                    f"{data_path}prediction")
 
 
 class TranslateWmt20Problem(TranslateProblem):

@@ -100,9 +100,8 @@ class GymEnvTest(tf.test.TestCase):
     return env, obs, rewards, num_dones
 
   def play(self, env, n_steps):
-    obs = []
     rewards = []
-    obs.append(env.reset())
+    obs = [env.reset()]
     num_dones = 0
     for _ in range(n_steps):
       step_obs, step_rewards, dones = env.step(actions=[0, 0])

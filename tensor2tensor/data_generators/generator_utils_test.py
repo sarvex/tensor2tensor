@@ -104,10 +104,10 @@ class GeneratorUtilsTest(tf.test.TestCase):
 
     filenames = generator_utils.train_data_filenames(tmp_file_name, tmp_dir, 1)
     generator_utils.generate_files(test_generator(), filenames)
-    self.assertTrue(tf.gfile.Exists(tmp_file_path + "-train-00000-of-00001"))
+    self.assertTrue(tf.gfile.Exists(f"{tmp_file_path}-train-00000-of-00001"))
 
     # Clean up.
-    os.remove(tmp_file_path + "-train-00000-of-00001")
+    os.remove(f"{tmp_file_path}-train-00000-of-00001")
     os.remove(tmp_file_path)
 
   def testMaybeDownload(self):
@@ -116,12 +116,12 @@ class GeneratorUtilsTest(tf.test.TestCase):
     tmp_file_name = os.path.basename(tmp_file_path)
 
     # Download Google index to the temporary file.http.
-    res_path = generator_utils.maybe_download(tmp_dir, tmp_file_name + ".http",
+    res_path = generator_utils.maybe_download(tmp_dir, f"{tmp_file_name}.http",
                                               "http://google.com")
-    self.assertEqual(res_path, tmp_file_path + ".http")
+    self.assertEqual(res_path, f"{tmp_file_path}.http")
 
     # Clean up.
-    os.remove(tmp_file_path + ".http")
+    os.remove(f"{tmp_file_path}.http")
     os.remove(tmp_file_path)
 
   def testMaybeDownloadFromDrive(self):
@@ -131,11 +131,11 @@ class GeneratorUtilsTest(tf.test.TestCase):
 
     # Download Google index to the temporary file.http.
     res_path = generator_utils.maybe_download_from_drive(
-        tmp_dir, tmp_file_name + ".http", "http://drive.google.com")
-    self.assertEqual(res_path, tmp_file_path + ".http")
+        tmp_dir, f"{tmp_file_name}.http", "http://drive.google.com")
+    self.assertEqual(res_path, f"{tmp_file_path}.http")
 
     # Clean up.
-    os.remove(tmp_file_path + ".http")
+    os.remove(f"{tmp_file_path}.http")
     os.remove(tmp_file_path)
 
   def testGunzipFile(self):
@@ -143,20 +143,20 @@ class GeneratorUtilsTest(tf.test.TestCase):
     (_, tmp_file_path) = tempfile.mkstemp(dir=tmp_dir)
 
     # Create a test zip file and unzip it.
-    with gzip.open(tmp_file_path + ".gz", "wb") as gz_file:
+    with gzip.open(f"{tmp_file_path}.gz", "wb") as gz_file:
       gz_file.write(bytes("test line", "utf-8"))
-    generator_utils.gunzip_file(tmp_file_path + ".gz", tmp_file_path + ".txt")
+    generator_utils.gunzip_file(f"{tmp_file_path}.gz", f"{tmp_file_path}.txt")
 
-    # Check that the unzipped result is as expected.
-    lines = []
-    for line in io.open(tmp_file_path + ".txt", "rb"):
-      lines.append(line.decode("utf-8").strip())
+    lines = [
+        line.decode("utf-8").strip()
+        for line in io.open(f"{tmp_file_path}.txt", "rb")
+    ]
     self.assertEqual(len(lines), 1)
     self.assertEqual(lines[0], "test line")
 
     # Clean up.
-    os.remove(tmp_file_path + ".gz")
-    os.remove(tmp_file_path + ".txt")
+    os.remove(f"{tmp_file_path}.gz")
+    os.remove(f"{tmp_file_path}.txt")
     os.remove(tmp_file_path)
 
   def testGetOrGenerateTxtVocab(self):

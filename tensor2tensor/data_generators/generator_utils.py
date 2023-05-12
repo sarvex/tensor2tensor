@@ -48,7 +48,7 @@ def to_example(dictionary):
   features = {}
   for (k, v) in six.iteritems(dictionary):
     if not v:
-      raise ValueError("Empty generated field: %s" % str((k, v)))
+      raise ValueError(f"Empty generated field: {(k, v)}")
     # Subtly in PY2 vs PY3, map is not scriptable in py3. As a result,
     # map objects will fail with TypeError, unless converted to a list.
     if six.PY3 and isinstance(v, map):
@@ -65,8 +65,9 @@ def to_example(dictionary):
     elif isinstance(v[0], bytes):
       features[k] = tf.train.Feature(bytes_list=tf.train.BytesList(value=v))
     else:
-      raise ValueError("Value for %s is not a recognized type; v: %s type: %s" %
-                       (k, str(v[0]), str(type(v[0]))))
+      raise ValueError(
+          f"Value for {k} is not a recognized type; v: {str(v[0])} type: {str(type(v[0]))}"
+      )
   return tf.train.Example(features=tf.train.Features(feature=features))
 
 
@@ -105,15 +106,15 @@ def _data_filenames(output_name, output_dir, num_shards):
 
 
 def train_data_filenames(problem, output_dir, num_shards):
-  return _data_filenames(problem + "-train", output_dir, num_shards)
+  return _data_filenames(f"{problem}-train", output_dir, num_shards)
 
 
 def dev_data_filenames(problem, output_dir, num_shards):
-  return _data_filenames(problem + "-dev", output_dir, num_shards)
+  return _data_filenames(f"{problem}-dev", output_dir, num_shards)
 
 
 def test_data_filenames(problem, output_dir, num_shards):
-  return _data_filenames(problem + "-test", output_dir, num_shards)
+  return _data_filenames(f"{problem}-test", output_dir, num_shards)
 
 
 def combined_data_filenames(problem, output_dir, num_training_shards):
@@ -155,10 +156,11 @@ def generate_files(generator, output_filenames,
       switching to the next shard; by default set to 1, switch every case.
   """
   if outputs_exist(output_filenames):
-    tf.logging.info("Skipping generator because outputs files exists at {}"
-                    .format(output_filenames))
+    tf.logging.info(
+        f"Skipping generator because outputs files exists at {output_filenames}"
+    )
     return
-  tmp_filenames = [fname + ".incomplete" for fname in output_filenames]
+  tmp_filenames = [f"{fname}.incomplete" for fname in output_filenames]
   num_shards = len(output_filenames)
   # Check if is training or eval, ref: train_data_filenames().
   if num_shards > 0:
@@ -234,25 +236,25 @@ def maybe_download(directory, filename, uri):
   tf.gfile.MakeDirs(directory)
   filepath = os.path.join(directory, filename)
   if tf.gfile.Exists(filepath):
-    tf.logging.info("Not downloading, file already found: %s" % filepath)
+    tf.logging.info(f"Not downloading, file already found: {filepath}")
     return filepath
 
-  tf.logging.info("Downloading %s to %s" % (uri, filepath))
+  tf.logging.info(f"Downloading {uri} to {filepath}")
   try:
     tf.gfile.Copy(uri, filepath)
   except tf.errors.UnimplementedError:
     if uri.startswith("http"):
-      inprogress_filepath = filepath + ".incomplete"
+      inprogress_filepath = f"{filepath}.incomplete"
       inprogress_filepath, _ = urllib.urlretrieve(
           uri, inprogress_filepath, reporthook=download_report_hook)
       # Print newline to clear the carriage return from the download progress
       print()
       tf.gfile.Rename(inprogress_filepath, filepath)
     else:
-      raise ValueError("Unrecognized URI: " + filepath)
+      raise ValueError(f"Unrecognized URI: {filepath}")
   statinfo = os.stat(filepath)
-  tf.logging.info("Successfully downloaded %s, %s bytes." %
-                  (filename, statinfo.st_size))
+  tf.logging.info(
+      f"Successfully downloaded {filename}, {statinfo.st_size} bytes.")
   return filepath
 
 
@@ -268,12 +270,12 @@ def maybe_download_from_drive(directory, filename, url):
     The path to the downloaded file.
   """
   if not tf.gfile.Exists(directory):
-    tf.logging.info("Creating directory %s" % directory)
+    tf.logging.info(f"Creating directory {directory}")
     tf.gfile.MakeDirs(directory)
   filepath = os.path.join(directory, filename)
   confirm_token = None
   if tf.gfile.Exists(filepath):
-    tf.logging.info("Not downloading, file already found: %s" % filepath)
+    tf.logging.info(f"Not downloading, file already found: {filepath}")
     return filepath
 
   # Since the file is big, drive will scan it for virus and take it to a
@@ -287,8 +289,8 @@ def maybe_download_from_drive(directory, filename, url):
       confirm_token = v
 
   if confirm_token:
-    url = url + "&confirm=" + confirm_token
-  tf.logging.info("Downloading %s to %s" % (url, filepath))
+    url = f"{url}&confirm={confirm_token}"
+  tf.logging.info(f"Downloading {url} to {filepath}")
 
   response = session.get(url, stream=True)
   # Now begin the download.
@@ -301,8 +303,8 @@ def maybe_download_from_drive(directory, filename, url):
   # Print newline to clear the carriage return from the download progress
   print()
   statinfo = os.stat(filepath)
-  tf.logging.info("Successfully downloaded %s, %s bytes." % (filename,
-                                                             statinfo.st_size))
+  tf.logging.info(
+      f"Successfully downloaded {filename}, {statinfo.st_size} bytes.")
   return filepath
 
 
@@ -314,9 +316,9 @@ def gunzip_file(gz_path, new_path):
     new_path: path to where the file will be unzipped.
   """
   if tf.gfile.Exists(new_path):
-    tf.logging.info("File %s already exists, skipping unpacking" % new_path)
+    tf.logging.info(f"File {new_path} already exists, skipping unpacking")
     return
-  tf.logging.info("Unpacking %s to %s" % (gz_path, new_path))
+  tf.logging.info(f"Unpacking {gz_path} to {new_path}")
   # We may be unpacking into a newly created directory, add write mode.
   mode = stat.S_IRWXU or stat.S_IXGRP or stat.S_IRGRP or stat.S_IROTH
   os.chmod(os.path.dirname(new_path), mode)
@@ -385,7 +387,7 @@ def generate_lines_for_vocab(tmp_dir, sources, file_byte_budget=1e6):
     compressed_file = maybe_download(tmp_dir, filename, url)
 
     for lang_file in source[1]:
-      tf.logging.info("Reading file: %s" % lang_file)
+      tf.logging.info(f"Reading file: {lang_file}")
       filepath = os.path.join(tmp_dir, lang_file)
 
       # Extract from tar if needed.
@@ -398,10 +400,9 @@ def generate_lines_for_vocab(tmp_dir, sources, file_byte_budget=1e6):
       if lang_file.endswith(".gz"):
         new_filepath = os.path.join(tmp_dir, lang_file[:-3])
         if tf.gfile.Exists(new_filepath):
-          tf.logging.info(
-              "Subdirectory %s already exists, skipping unpacking" % filepath)
+          tf.logging.info(f"Subdirectory {filepath} already exists, skipping unpacking")
         else:
-          tf.logging.info("Unpacking subdirectory %s" % filepath)
+          tf.logging.info(f"Unpacking subdirectory {filepath}")
           gunzip_file(filepath, new_filepath)
         filepath = new_filepath
 
@@ -448,8 +449,7 @@ def get_or_generate_tabbed_vocab(data_dir, tmp_dir, source_filename,
         line = line.strip()
         if line and "\t" in line:
           parts = line.split("\t", 1)
-          part = parts[index].strip()
-          yield part
+          yield parts[index].strip()
 
   return get_or_generate_vocab_inner(data_dir, vocab_filename, vocab_size,
                                      generate())
@@ -718,16 +718,15 @@ def pack_dataset(dataset, length, keys=None, use_custom_ops=False):
 
   for k in keys:
     if k not in shapes:
-      raise ValueError("Key %s not found in dataset.  Available keys are %s"
-                       % (k, shapes.keys()))
+      raise ValueError(
+          f"Key {k} not found in dataset.  Available keys are {shapes.keys()}")
     if not shapes[k].is_compatible_with(tf.TensorShape([None])):
       raise ValueError("Tensors to be packed must be one-dimensional.")
 
   if use_custom_ops:
     return _pack_with_custom_ops(dataset, keys, length)
-  else:
-    packer = SequenceDatasetPacker(length, spacing=0, queue_size=10)
-    return packer(dataset, cycle_length=10, keys=keys)
+  packer = SequenceDatasetPacker(length, spacing=0, queue_size=10)
+  return packer(dataset, cycle_length=10, keys=keys)
 
 
 def _pack_with_custom_ops(dataset, keys, length):
@@ -765,13 +764,14 @@ def _pack_with_custom_ops(dataset, keys, length):
          pack_sequences_ops.pack_sequences2(x[k1], x[k2], length, length))
     packed = {
         k1: k1_packed,
-        k1 + "_segmentation": k1_segmengation,
-        k1 + "_position": k1_position,
+        f"{k1}_segmentation": k1_segmengation,
+        f"{k1}_position": k1_position,
         k2: k2_packed,
-        k2 + "_segmentation": k2_segmentation,
-        k2 + "_position": k2_position,
+        f"{k2}_segmentation": k2_segmentation,
+        f"{k2}_position": k2_position,
     }
     return tf.data.Dataset.from_tensor_slices(packed)
+
   dataset = dataset.flat_map(map_fn_custom)
   return dataset
 
@@ -859,9 +859,10 @@ class SequenceDatasetPacker(object):
         output = {}
         for i, key in enumerate(keys):
           output[key] = example["contents"][:, i]
-          output[key + "_segmentation"] = example["segment"][:, i]
-          output[key + "_position"] = example["position"][:, i]
+          output[f"{key}_segmentation"] = example["segment"][:, i]
+          output[f"{key}_position"] = example["position"][:, i]
         return output
+
       dataset = dataset.map(dict_pack)
     return dataset
 
@@ -892,7 +893,7 @@ class SequenceDatasetPacker(object):
 
     token_types = tf.data.get_output_types(dataset)
     if len(set(token_types)) > 1:
-      raise ValueError("Inconsistent dtypes: {}".format(token_types))
+      raise ValueError(f"Inconsistent dtypes: {token_types}")
 
     return dataset, len(shapes), token_types[0], keys
 
@@ -1156,15 +1157,14 @@ def make_tmp_dir(suffix="", prefix="tmp", dir=None):  # pylint: disable=redefine
   """Make a temporary directory."""
   if dir is None:
     return tempfile.mkdtemp(suffix, prefix, dir)
-  else:
-    while True:
-      rand_term = random.randint(1, 9999)
-      tmp_dir = os.path.join(dir, "%s%d%s" % (prefix, rand_term, suffix))
-      if tf.gfile.Exists(tmp_dir):
-        continue
-      tf.gfile.MakeDirs(tmp_dir)
-      break
-    return tmp_dir
+  while True:
+    rand_term = random.randint(1, 9999)
+    tmp_dir = os.path.join(dir, "%s%d%s" % (prefix, rand_term, suffix))
+    if tf.gfile.Exists(tmp_dir):
+      continue
+    tf.gfile.MakeDirs(tmp_dir)
+    break
+  return tmp_dir
 
 
 def tfrecord_iterator_for_problem(problem, data_dir,
@@ -1209,8 +1209,7 @@ def tfrecord_iterator(filenames, gzipped=False, example_spec=None):
     with tf.Session() as sess:
       while True:
         try:
-          ex = sess.run(record_it)
-          yield ex
+          yield sess.run(record_it)
         except tf.errors.OutOfRangeError:
           break
 

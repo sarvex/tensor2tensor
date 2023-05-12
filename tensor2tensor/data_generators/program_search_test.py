@@ -64,8 +64,9 @@ class ProgramSearchAlgolispStub(program_search.ProgramSearchAlgolisp):
   N = 10
 
   def maybe_download_dataset(self, tmp_dir, dataset_split):
-    (_, data_file) = tempfile.mkstemp(
-        suffix='.gz', prefix=str(dataset_split) + '-', dir=tmp_dir)
+    (_, data_file) = tempfile.mkstemp(suffix='.gz',
+                                      prefix=f'{str(dataset_split)}-',
+                                      dir=tmp_dir)
 
     with gzip.open(data_file, 'wb') as gz_file:
       content = '\n'.join([self.EXAMPLE] * self.N)

@@ -68,9 +68,9 @@ class QuoraQuestionPairs(text_problems.TextConcat2ClassProblem):
     return ["not_duplicate", "duplicate"]
 
   def _maybe_download_corpora(self, tmp_dir):
-    qqp_filename = "QQP.zip"
     qqp_finalpath = os.path.join(tmp_dir, "QQP")
     if not tf.gfile.Exists(qqp_finalpath):
+      qqp_filename = "QQP.zip"
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, qqp_filename, self._QQP_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -107,8 +107,7 @@ class QuoraQuestionPairs(text_problems.TextConcat2ClassProblem):
       filesplit = "dev.tsv"
 
     filename = os.path.join(qqp_dir, filesplit)
-    for example in self.example_generator(filename):
-      yield example
+    yield from self.example_generator(filename)
 
 
 @registry.register_problem

@@ -38,8 +38,8 @@ class AudioTest(tf.test.TestCase):
         "dir1/dir2/dir3/file4",
     ]
     for filename in test_files:
-      input_filename = os.path.join(tmp_dir, filename + ".WAV")
-      target_filename = os.path.join(tmp_dir, filename + ".WRD")
+      input_filename = os.path.join(tmp_dir, f"{filename}.WAV")
+      target_filename = os.path.join(tmp_dir, f"{filename}.WRD")
       directories = os.path.dirname(input_filename)
       if not os.path.exists(directories):
         os.makedirs(directories)
@@ -52,8 +52,8 @@ class AudioTest(tf.test.TestCase):
 
     # Clean up.
     for filename in test_files:
-      os.remove(os.path.join(tmp_dir, "%s.WAV" % filename))
-      os.remove(os.path.join(tmp_dir, "%s.WRD" % filename))
+      os.remove(os.path.join(tmp_dir, f"{filename}.WAV"))
+      os.remove(os.path.join(tmp_dir, f"{filename}.WRD"))
 
 
 if __name__ == "__main__":

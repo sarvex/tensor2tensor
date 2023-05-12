@@ -96,12 +96,11 @@ class Desc2CodeProblem(text_problems.Text2TextProblem):
 
   @property
   def vocab_input_filename(self):
-    return "{}.{}".format(_VOCAB_EN_FILENAME, self.input_vocab_size)
+    return f"{_VOCAB_EN_FILENAME}.{self.input_vocab_size}"
 
   @property
   def vocab_target_filename(self):
-    return "{}.{}".format(
-        self.pb_constants.vocab_filename, self.target_vocab_size)
+    return f"{self.pb_constants.vocab_filename}.{self.target_vocab_size}"
 
   def preprocess_target(self, target):
     """Apply some preprocessing to the target.
@@ -293,7 +292,7 @@ def generator_samples(tmp_dir, pb_cst):
         # make the file be considered as C++ but in practice the chance of
         # getting a false negative is low.
         content = target_file.read()
-        if not any(p in content for p in pb_cst.filter_patterns):
+        if all(p not in content for p in pb_cst.filter_patterns):
           code_files.append(f)
     return CodingPbInfo(
         desc_file=desc_file,

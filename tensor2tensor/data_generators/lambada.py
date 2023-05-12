@@ -29,6 +29,7 @@ Lmbada as a reading comprehension task:
 
 """
 
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -50,7 +51,7 @@ _UNK = "<UNK>"
 
 
 _TAR = "lambada-dataset.tar.gz"
-_URL = "http://clic.cimec.unitn.it/lambada/" + _TAR
+_URL = f"http://clic.cimec.unitn.it/lambada/{_TAR}"
 _VOCAB = "lambada-vocab-2.txt"
 
 
@@ -100,27 +101,20 @@ def get_dataset_split(tmp_dir, split, use_control_set):
   """
   if not use_control_set:
     dataset_split = {
-        problem.DatasetSplit.TRAIN: [
-            f for f in tf.gfile.Glob(
-                os.path.join(tmp_dir, "train-novels/*/*.txt"))
-        ],
-        problem.DatasetSplit.EVAL: [
-            os.path.join(tmp_dir, "lambada_development_plain_text.txt")
-        ],
-        problem.DatasetSplit.TEST: [
-            os.path.join(tmp_dir, "lambada_test_plain_text.txt")
-        ]
+        problem.DatasetSplit.TRAIN:
+        list(tf.gfile.Glob(os.path.join(tmp_dir, "train-novels/*/*.txt"))),
+        problem.DatasetSplit.EVAL:
+        [os.path.join(tmp_dir, "lambada_development_plain_text.txt")],
+        problem.DatasetSplit.TEST:
+        [os.path.join(tmp_dir, "lambada_test_plain_text.txt")],
     }
 
   else:
     dataset_split = {
-        problem.DatasetSplit.TRAIN: [
-            f for f in tf.gfile.Glob(
-                os.path.join(tmp_dir, "train-novels/*/*.txt"))
-        ],
-        problem.DatasetSplit.EVAL: [
-            os.path.join(tmp_dir, "lambada_control_test_data_plain_text.txt")
-        ],
+        problem.DatasetSplit.TRAIN:
+        list(tf.gfile.Glob(os.path.join(tmp_dir, "train-novels/*/*.txt"))),
+        problem.DatasetSplit.EVAL:
+        [os.path.join(tmp_dir, "lambada_control_test_data_plain_text.txt")],
     }
 
   return dataset_split[split]

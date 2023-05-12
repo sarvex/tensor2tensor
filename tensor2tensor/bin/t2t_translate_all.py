@@ -74,20 +74,20 @@ def main(_):
 
   # Copy flags.txt with the original time, so t2t-bleu can report correct
   # relative time.
-  flags_path = os.path.join(translations_dir, FLAGS.problem + "-flags.txt")
+  flags_path = os.path.join(translations_dir, f"{FLAGS.problem}-flags.txt")
   if not os.path.exists(flags_path):
     shutil.copy2(os.path.join(model_dir, "flags.txt"), flags_path)
 
   locals_and_flags = {"FLAGS": FLAGS}
   for model in bleu_hook.stepfiles_iterator(model_dir, FLAGS.wait_minutes,
                                             FLAGS.min_steps):
-    tf.logging.info("Translating " + model.filename)
-    out_file = translated_base_file + "-" + str(model.steps)
-    locals_and_flags.update(locals())
+    tf.logging.info(f"Translating {model.filename}")
+    out_file = f"{translated_base_file}-{str(model.steps)}"
+    locals_and_flags |= locals()
     if os.path.exists(out_file):
-      tf.logging.info(out_file + " already exists, so skipping it.")
+      tf.logging.info(f"{out_file} already exists, so skipping it.")
     else:
-      tf.logging.info("Translating " + out_file)
+      tf.logging.info(f"Translating {out_file}")
       params = (
           "--t2t_usr_dir={FLAGS.t2t_usr_dir} --output_dir={model_dir} "
           "--data_dir={FLAGS.data_dir} --problem={FLAGS.problem} "

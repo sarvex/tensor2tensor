@@ -37,8 +37,7 @@ class CommonVideoTest(parameterized.TestCase, tf.test.TestCase):
     ground_truth_x = tf.convert_to_tensor(ground_truth_x)
     generated_x = tf.convert_to_tensor(generated_x)
     ss_out = func(ground_truth_x, generated_x, batch_size, var)
-    output = self.evaluate([ground_truth_x, generated_x, ss_out])
-    return output
+    return self.evaluate([ground_truth_x, generated_x, ss_out])
 
   @test_utils.run_in_graph_and_eager_modes()
   def testScheduledSampleProbStart(self):

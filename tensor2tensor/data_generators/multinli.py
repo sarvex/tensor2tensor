@@ -47,9 +47,9 @@ def _maybe_download_corpora(tmp_dir):
   Returns:
     a string
   """
-  mnli_filename = "MNLI.zip"
   mnli_finalpath = os.path.join(tmp_dir, "MNLI")
   if not tf.gfile.Exists(mnli_finalpath):
+    mnli_filename = "MNLI.zip"
     zip_filepath = generator_utils.maybe_download(
         tmp_dir, mnli_filename, _MNLI_URL)
     zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -152,9 +152,9 @@ class MultiNLIText2text(text_problems.Text2TextProblem):
       filename = os.path.join(mnli_dir, fs)
       for example in _example_generator(filename):
         yield {
-            "inputs": "multinli premise: %s hypothesis: %s" % (
-                example["premise"], example["hypothesis"]),
-            "targets": example["label"]
+            "inputs":
+            f'multinli premise: {example["premise"]} hypothesis: {example["hypothesis"]}',
+            "targets": example["label"],
         }
 
 

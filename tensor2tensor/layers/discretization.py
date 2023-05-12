@@ -50,8 +50,7 @@ def project_hidden(x, projection_tensors, hidden_size, num_blocks):
       shape=[num_blocks, -1, hidden_size])
   x_projected = tf.matmul(x_tiled, projection_tensors)
   x_projected = tf.transpose(x_projected, perm=[1, 0, 2])
-  x_4d = tf.reshape(x_projected, [batch_size, latent_dim, num_blocks, -1])
-  return x_4d
+  return tf.reshape(x_projected, [batch_size, latent_dim, num_blocks, -1])
 
 
 def slice_hidden(x, hidden_size, num_blocks):
@@ -67,9 +66,7 @@ def slice_hidden(x, hidden_size, num_blocks):
   """
   batch_size, latent_dim, _ = common_layers.shape_list(x)
   block_dim = hidden_size // num_blocks
-  x_sliced = tf.reshape(x,
-                        shape=[batch_size, latent_dim, num_blocks, block_dim])
-  return x_sliced
+  return tf.reshape(x, shape=[batch_size, latent_dim, num_blocks, block_dim])
 
 
 def nearest_neighbor(x,
@@ -605,7 +602,7 @@ def discrete_bottleneck(inputs,
     block_v_size = None
 
   with tf.variable_scope(
-      name, default_name="discrete_bottleneck", reuse=tf.AUTO_REUSE):
+        name, default_name="discrete_bottleneck", reuse=tf.AUTO_REUSE):
     embed_fn = partial(
         embed,
         hidden_size=hidden_size,
@@ -668,7 +665,7 @@ def discrete_bottleneck(inputs,
                 sum_over_latents=sum_over_latents))
         # Update the EMA variables.
         if ema:
-          tf.logging.info("Using EMA with beta = {}".format(beta))
+          tf.logging.info(f"Using EMA with beta = {beta}")
           updated_ema_count_res = moving_averages.assign_moving_average(
               ema_count[i],
               tf.where(cond,
@@ -1184,6 +1181,8 @@ def gumbel_softmax_nearest_neighbor_dvq(x,
   if num_flows > 0:
     hparams = iaf_hparams(hidden_size=512, filter_size=4096)
     q_samples = tf.reshape(q_samples, [-1, latent_dim, block_v_size])
+    # TODO(vafa): Include masking as a flag.
+    mask = True
     for flow in range(num_flows):
       shifted_samples = tf.pad(q_samples, [[0, 0], [1, 0], [0, 0]])[:, :-1, :]
 
@@ -1191,8 +1190,6 @@ def gumbel_softmax_nearest_neighbor_dvq(x,
       # [batch_size, latent_size, hidden_size].
       shifted_samples = common_layers.dense(shifted_samples,
                                             hparams.hidden_size)
-      # TODO(vafa): Include masking as a flag.
-      mask = True
       if mask:
         attention_type = cia.AttentionType.LOCAL_1D
       else:
@@ -1203,7 +1200,8 @@ def gumbel_softmax_nearest_neighbor_dvq(x,
           num_layers=6,
           hparams=hparams,
           attention_type=attention_type,
-          name="transformer_" + str(flow))
+          name=f"transformer_{str(flow)}",
+      )
 
       # Project samples back to [batch_size, latent_size, block_v_size].
       ffn_output = common_layers.dense(ffn_output, block_v_size)
@@ -1478,7 +1476,7 @@ def parametrized_bottleneck(x, hparams):
         summary=True)
 
   raise ValueError(
-      "Unsupported hparams.bottleneck_kind %s" % hparams.bottleneck_kind)
+      f"Unsupported hparams.bottleneck_kind {hparams.bottleneck_kind}")
 
 
 def parametrized_unbottleneck(x, hidden_size, hparams):
@@ -1491,7 +1489,7 @@ def parametrized_unbottleneck(x, hidden_size, hparams):
   if hparams.bottleneck_kind in ["vq", "em", "gumbel_softmax"]:
     return vq_discrete_unbottleneck(x, hidden_size)
   raise ValueError(
-      "Unsupported hparams.bottleneck_kind %s" % hparams.bottleneck_kind)
+      f"Unsupported hparams.bottleneck_kind {hparams.bottleneck_kind}")
 
 
 def iaf_hparams(hidden_size=512, filter_size=4096):

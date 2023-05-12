@@ -39,12 +39,11 @@ class UtilsTest(tf.test.TestCase):
   def test_filter_paragraph(self):
     for bad in tf.io.gfile.glob(os.path.join(_TESTDATA, "para_bad*.txt")):
       for p in _get_testdata(bad).split("\n"):
-        self.assertTrue(utils.filter_paragraph(p),
-                        msg="Didn't filter %s" % p)
+        self.assertTrue(utils.filter_paragraph(p), msg=f"Didn't filter {p}")
     for good in tf.io.gfile.glob(os.path.join(_TESTDATA, "para_good*.txt")):
       for p in _get_testdata(good).split("\n"):
         p = _get_testdata(good)
-      self.assertFalse(utils.filter_paragraph(p), msg="Filtered %s" % p)
+      self.assertFalse(utils.filter_paragraph(p), msg=f"Filtered {p}")
 
 
 if __name__ == "__main__":

@@ -66,7 +66,7 @@ def native_to_unicode(s):
     return to_unicode(s)
   except UnicodeDecodeError:
     res = to_unicode(s, ignore_errors=True)
-    tf.logging.info("Ignoring Unicode error, outputting: %s" % res)
+    tf.logging.info(f"Ignoring Unicode error, outputting: {res}")
     return res
 
 
@@ -345,8 +345,7 @@ class TokenTextEncoder(TextEncoder):
       tokens = [token.strip() for token in f.readlines()]
 
     def token_gen():
-      for token in tokens:
-        yield token
+      yield from tokens
 
     self._init_vocab(token_gen(), add_reserved_tokens=False)
 
@@ -373,15 +372,14 @@ class TokenTextEncoder(TextEncoder):
     non_reserved_start_index = 0
 
     if add_reserved_tokens:
-      self._id_to_token.update(enumerate(RESERVED_TOKENS))
+      self._id_to_token |= enumerate(RESERVED_TOKENS)
       non_reserved_start_index = len(RESERVED_TOKENS)
 
     self._id_to_token.update(
         enumerate(token_generator, start=non_reserved_start_index))
 
     # _token_to_id is the reverse of _id_to_token
-    self._token_to_id = dict((v, k)
-                             for k, v in six.iteritems(self._id_to_token))
+    self._token_to_id = {v: k for k, v in six.iteritems(self._id_to_token)}
 
   def store_to_file(self, filename):
     """Write vocab file to disk.
@@ -415,7 +413,7 @@ def _escape_token(token, alphabet):
     ValueError: If the provided token is not unicode.
   """
   if not isinstance(token, six.text_type):
-    raise ValueError("Expected string type for token, got %s" % type(token))
+    raise ValueError(f"Expected string type for token, got {type(token)}")
 
   token = token.replace(u"\\", u"\\\\").replace(u"_", u"\\u")
   ret = [c if c in alphabet and c != u"\n" else r"\%d;" % ord(c) for c in token]
@@ -587,8 +585,7 @@ class SubwordTextEncoder(TextEncoder):
     ret = []
     for t in split:
       if t:
-        unescaped = _unescape_token(t + "_")
-        if unescaped:
+        if unescaped := _unescape_token(f"{t}_"):
           ret.append(unescaped)
     return ret
 
@@ -667,11 +664,14 @@ class SubwordTextEncoder(TextEncoder):
     for item in generator:
       for tok in tokenizer.encode(native_to_unicode(item)):
         token_counts[tok] += 1
-    encoder = cls.build_to_target_size(
-        target_size, token_counts, 1, 1e3,
+    return cls.build_to_target_size(
+        target_size,
+        token_counts,
+        1,
+        1e3,
         max_subtoken_length=max_subtoken_length,
-        reserved_tokens=reserved_tokens)
-    return encoder
+        reserved_tokens=reserved_tokens,
+    )
 
   @classmethod
   def build_to_target_size(cls,
@@ -796,8 +796,7 @@ class SubwordTextEncoder(TextEncoder):
     # We build iteratively.  On each iteration, we segment all the words,
     # then count the resulting potential subtokens, keeping the ones
     # with high enough counts for our new vocabulary.
-    if min_count < 1:
-      min_count = 1
+    min_count = max(min_count, 1)
     for i in range(num_iterations):
       tf.logging.info("Iteration {0}".format(i))
 
@@ -900,7 +899,7 @@ class SubwordTextEncoder(TextEncoder):
 
     # we remember the maximum length of any subtoken to avoid having to
     # check arbitrarily long strings.
-    self._max_subtoken_len = max([len(s) for s in subtoken_strings])
+    self._max_subtoken_len = max(len(s) for s in subtoken_strings)
     self._subtoken_string_to_id = {
         s: i + len(reserved_tokens)
         for i, s in enumerate(subtoken_strings) if s
@@ -936,7 +935,7 @@ class SubwordTextEncoder(TextEncoder):
   def _load_from_file(self, filename):
     """Load from a vocab file."""
     if not tf.gfile.Exists(filename):
-      raise ValueError("File %s not found" % filename)
+      raise ValueError(f"File {filename} not found")
     with tf.gfile.Open(filename) as f:
       self._load_from_file_object(f)
 
@@ -944,7 +943,7 @@ class SubwordTextEncoder(TextEncoder):
     with tf.gfile.Open(filename, "w") as f:
       for subtoken_string in self._all_subtoken_strings:
         if add_single_quotes:
-          f.write("'" + unicode_to_native(subtoken_string) + "'\n")
+          f.write(f"'{unicode_to_native(subtoken_string)}" + "'\n")
         else:
           f.write(unicode_to_native(subtoken_string) + "\n")
 
@@ -996,7 +995,7 @@ class ImageEncoder(object):
     _, tmp_file_path = tempfile.mkstemp("_decode.png")
     if self._height is None or self._width is None:
       size = int(math.sqrt(len(ids) / self._channels))
-      length = size * size * self._channels
+      length = size**2 * self._channels
     else:
       size = None
       length = self._height * self._width * self._channels

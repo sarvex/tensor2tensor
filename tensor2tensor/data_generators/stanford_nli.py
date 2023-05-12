@@ -68,9 +68,9 @@ class StanfordNLI(text_problems.TextConcat2ClassProblem):
     return ["contradiction", "entailment", "neutral"]
 
   def _maybe_download_corpora(self, tmp_dir):
-    snli_filename = "SNLI.zip"
     snli_finalpath = os.path.join(tmp_dir, "snli_1.0")
     if not tf.gfile.Exists(snli_finalpath):
+      snli_filename = "SNLI.zip"
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, snli_filename, self._SNLI_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -104,8 +104,7 @@ class StanfordNLI(text_problems.TextConcat2ClassProblem):
       filesplit = "snli_1.0_dev.txt"
 
     filename = os.path.join(snli_dir, filesplit)
-    for example in self.example_generator(filename):
-      yield example
+    yield from self.example_generator(filename)
 
 
 @registry.register_problem

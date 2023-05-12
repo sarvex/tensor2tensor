@@ -16,6 +16,7 @@
 """Data generators for translation data-sets."""
 
 
+
 from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import translate
@@ -27,13 +28,13 @@ EOS = text_encoder.EOS_ID
 _URL = "https://github.com/LauraMartinus/ukuxhumana/blob/master/data/en_tn"
 
 _ENTN_TRAIN_DATASETS = [[
-    _URL + "/eng_tswane.train.tar.gz?raw=true",
-    ("entn_parallel.train.en", "entn_parallel.train.tn")
+    f"{_URL}/eng_tswane.train.tar.gz?raw=true",
+    ("entn_parallel.train.en", "entn_parallel.train.tn"),
 ]]
 
 _ENTN_TEST_DATASETS = [[
-    _URL + "/eng_tswane.dev.tar.gz?raw=true",
-    ("entn_parallel.dev.en", "entn_parallel.dev.tn")
+    f"{_URL}/eng_tswane.dev.tar.gz?raw=true",
+    ("entn_parallel.dev.en", "entn_parallel.dev.tn"),
 ]]
 
 

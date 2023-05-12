@@ -82,7 +82,7 @@ def imagenet_pixelrnn_generator(tmp_dir,
     eval_prefix = _IMAGENET_MEDIUM_EVAL_PREFIX
   prefix = train_prefix if training else eval_prefix
   images_filepath = os.path.join(tmp_dir, prefix)
-  image_files = tf.gfile.Glob(images_filepath + "/*")
+  image_files = tf.gfile.Glob(f"{images_filepath}/*")
   height = size
   width = size
   const_label = 0

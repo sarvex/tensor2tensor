@@ -245,8 +245,7 @@ class TransformerMemory(object):
                      transpose_b=True)
     dot_product = tf.matmul(mem_query, mem_keys, transpose_b=True)
     cos_dist = tf.div(dot_product, norm + 1e-7, name="cos_dist")
-    access_logits = self.sharpen_factor * cos_dist
-    return access_logits
+    return self.sharpen_factor * cos_dist
 
   def read(self, x):
     """Read from the memory.
@@ -298,15 +297,13 @@ class TransformerMemory(object):
     update_value_op = self.mem_vals.assign(
         tf.reduce_mean(erase + addition, axis=1))
     with tf.control_dependencies([update_value_op]):
-      write_op = self.mean_logits.assign(
-          self.mean_logits * 0.1 + tf.reduce_mean(write_logits * 0.9, axis=1))
-      return write_op
+      return self.mean_logits.assign(self.mean_logits * 0.1 +
+                                     tf.reduce_mean(write_logits * 0.9, axis=1))
 
   def set(self, mem_vals, mean_logits):
-    set_op = tf.group([
-        self.mem_vals.assign(mem_vals),
-        self.mean_logits.assign(mean_logits)])
-    return set_op
+    return tf.group(
+        [self.mem_vals.assign(mem_vals),
+         self.mean_logits.assign(mean_logits)])
 
   def get(self):
     return self.mem_vals, self.mean_logits
@@ -333,8 +330,7 @@ class TransformerMemory(object):
         tf.tile(tf.expand_dims(
             tf.fill([self.memory_size], .0), 0),
                 [num_updates, 1]))
-    reset_op = tf.group([update_vals, update_logits])
-    return reset_op
+    return tf.group([update_vals, update_logits])
 
   def pre_attention(self, segment_number, query_antecedent,
                     memory_antecedent, bias):
@@ -350,7 +346,7 @@ class TransformerMemory(object):
     Returns:
       (data, new_query_antecedent, new_memory_antecedent, new_bias)
     """
-    with tf.variable_scope(self.name + "/pre_attention", reuse=tf.AUTO_REUSE):
+    with tf.variable_scope(f"{self.name}/pre_attention", reuse=tf.AUTO_REUSE):
       assert memory_antecedent is None, "We only support language modeling"
       with tf.control_dependencies([
           tf.assert_greater_equal(self.batch_size, tf.size(segment_number))]):
@@ -358,16 +354,17 @@ class TransformerMemory(object):
         segment_number = tf.pad(segment_number, [[0, difference]])
         reset_op = self.reset(tf.reshape(tf.where(
             tf.less(segment_number, self.segment_number)), [-1]))
-      memory_results = {}
       with tf.control_dependencies([reset_op]):
         with tf.control_dependencies([
             self.update_segment_number(segment_number)]):
           x = tf.pad(query_antecedent, [
               [0, difference], [0, 0], [0, 0]])
           access_logits, retrieved_mem = self.read(x)
-      memory_results["x"] = x
-      memory_results["access_logits"] = access_logits
-      memory_results["retrieved_mem"] = retrieved_mem
+      memory_results = {
+          "x": x,
+          "access_logits": access_logits,
+          "retrieved_mem": retrieved_mem,
+      }
       return memory_results, query_antecedent, memory_antecedent, bias
 
   def post_attention(self, token, x):
@@ -380,7 +377,7 @@ class TransformerMemory(object):
     Returns:
       a (possibly modified) version of the input x
     """
-    with tf.variable_scope(self.name + "/post_attention", reuse=tf.AUTO_REUSE):
+    with tf.variable_scope(f"{self.name}/post_attention", reuse=tf.AUTO_REUSE):
       depth = common_layers.shape_list(x)[-1]
       actual_batch_size = common_layers.shape_list(x)[0]
       memory_output = tf.gather(token["retrieved_mem"],

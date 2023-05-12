@@ -281,11 +281,11 @@ def image_targets_bottom(x, model_hparams, vocab_size):
     # Let's now merge all channels that were embedded into a single vector.
     merged_size = pixel_embedding_size * inputs_shape[3]
     embedded = tf.reshape(embedded, inputs_shape[:3] + [merged_size])
-    merged = tf.layers.dense(
+    return tf.layers.dense(
         embedded,
         model_hparams.hidden_size,
-        name="merge_pixel_embedded_channels")
-    return merged
+        name="merge_pixel_embedded_channels",
+    )
 
 
 def _image_channel_compress_bottom(inputs, model_hparams, name="bottom"):
@@ -321,16 +321,15 @@ def _image_channel_compress_bottom(inputs, model_hparams, name="bottom"):
     inputs = tf.reshape(
         inputs, [-1, inputs_shape[1], inputs_shape[2] * inputs_shape[3], 1])
 
-    # Compress RGB intensities for each pixel using a convolution.
-    outputs = tf.layers.conv2d(
+    return tf.layers.conv2d(
         inputs,
         model_hparams.hidden_size,
         kernel_size=(1, num_channels),
         padding="VALID",
         strides=(1, num_channels),
         activation=tf.nn.relu,
-        name="conv_input")
-    return outputs
+        name="conv_input",
+    )
 
 
 def image_channel_compress_bottom(x, model_hparams, vocab_size):
@@ -475,10 +474,7 @@ def get_weights(model_hparams, vocab_size, hidden_dim=None):
         tf.get_variable(
             var_name, [shard_size, hidden_dim],
             initializer=tf.random_normal_initializer(0.0, hidden_dim**-0.5)))
-  if num_shards == 1:
-    ret = shards[0]
-  else:
-    ret = tf.concat(shards, 0)
+  ret = shards[0] if num_shards == 1 else tf.concat(shards, 0)
   # Convert ret to tensor.
   if not tf.executing_eagerly():
     ret = common_layers.convert_gradient_to_tensor(ret)
@@ -516,18 +512,17 @@ def symbol_bottom(x, model_hparams, vocab_size):
 
 def symbol_targets_bottom(x, model_hparams, vocab_size):
   """Bottom transformation for target symbols."""
-  if (model_hparams.shared_embedding_and_softmax_weights or
-      model_hparams.get("shared_embedding")):
-    try:
-      return _symbol_bottom_simple(
-          x, model_hparams, vocab_size, "shared", reuse=True)
-    except ValueError:
-      # perhaps there were no inputs, and this is a new variable.
-      return _symbol_bottom_simple(
-          x, model_hparams, vocab_size, "shared", reuse=None)
-  else:
+  if (not model_hparams.shared_embedding_and_softmax_weights
+      and not model_hparams.get("shared_embedding")):
     return _symbol_bottom_simple(
         x, model_hparams, vocab_size, "target_emb", reuse=None)
+  try:
+    return _symbol_bottom_simple(
+        x, model_hparams, vocab_size, "shared", reuse=True)
+  except ValueError:
+    # perhaps there were no inputs, and this is a new variable.
+    return _symbol_bottom_simple(
+        x, model_hparams, vocab_size, "shared", reuse=None)
 
 
 def symbol_one_hot_bottom(x, model_hparams, vocab_size):
@@ -598,12 +593,12 @@ def video_identity_targets_bottom(x, model_hparams, vocab_size):
 
 def video_pixel_noise_bottom(x, model_hparams, vocab_size):
   """Bottom transformation for video."""
-  input_noise = getattr(model_hparams, "video_modality_input_noise", 0.25)
   inputs = x
   if model_hparams.mode == tf.estimator.ModeKeys.TRAIN:
     background = tfp.stats.percentile(inputs, 50., axis=[0, 1, 2, 3])
     input_shape = common_layers.shape_list(inputs)
     input_size = tf.reduce_prod(input_shape[:-1])
+    input_noise = getattr(model_hparams, "video_modality_input_noise", 0.25)
     input_mask = tf.multinomial(
         tf.log([[input_noise, 1.-input_noise]]), input_size)
     input_mask = tf.reshape(tf.cast(input_mask, tf.int32),
@@ -867,8 +862,7 @@ def video_l1_loss(top_out, targets, model_hparams, vocab_size, weights_fn):
 
 def video_l2_internal_loss(logits, targets, model_hparams):
   cutoff = getattr(model_hparams, "video_modality_loss_cutoff", 0.2)
-  return tf.nn.relu(
-      tf.squared_difference(logits, targets) - cutoff * cutoff)
+  return tf.nn.relu(tf.squared_difference(logits, targets) - cutoff**2)
 
 
 def video_l2_loss(top_out, targets, model_hparams, vocab_size, weights_fn):

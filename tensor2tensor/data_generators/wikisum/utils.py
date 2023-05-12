@@ -117,23 +117,18 @@ def wet_records_from_file_obj(f, take_ownership=False):
 
 def wet_records(wet_filepath):
   """Generate WETRecords from filepath."""
-  if wet_filepath.endswith('.gz'):
-    fopen = gzip.open
-  else:
-    fopen = tf.gfile.GFile
-
+  fopen = gzip.open if wet_filepath.endswith('.gz') else tf.gfile.GFile
   with fopen(wet_filepath) as f:
-    for record in wet_records_from_file_obj(f):
-      yield record
+    yield from wet_records_from_file_obj(f)
 
 
 def download(url, download_dir):
   outname = os.path.join(download_dir, os.path.basename(url))
   if tf.gfile.Exists(outname):
-    print('Found %s, skipping download' % outname)
+    print(f'Found {outname}, skipping download')
     return outname
-  inprogress = outname + '.incomplete'
-  print('Downloading %s' % url)
+  inprogress = f'{outname}.incomplete'
+  print(f'Downloading {url}')
   inprogress, _ = urllib.urlretrieve(url, inprogress)
   tf.gfile.Rename(inprogress, outname)
   return outname
@@ -142,11 +137,8 @@ def download(url, download_dir):
 def wet_download_urls(wet_paths_url, tmp_dir, rm_after=True):
   paths_gz = download(wet_paths_url, tmp_dir)
   with gzip.open(paths_gz) as f:
-    path = f.readline()
-    while path:
-      download_path = S3_HTTP_PREFIX + path[:-1]
-      yield download_path
-      path = f.readline()
+    while path := f.readline():
+      yield S3_HTTP_PREFIX + path[:-1]
   if rm_after:
     tf.gfile.Remove(paths_gz)
 
@@ -154,8 +146,7 @@ def wet_download_urls(wet_paths_url, tmp_dir, rm_after=True):
 def wet_records_from_url(download_url, tmp_dir, rm_after=True):
   wet_gz = download(download_url, tmp_dir)
   try:
-    for wet_record in wet_records(wet_gz):
-      yield wet_record
+    yield from wet_records(wet_gz)
   finally:
     if rm_after:
       tf.gfile.Remove(wet_gz)
@@ -197,7 +188,7 @@ def shard(items, num_shards):
   for i in range(remainder):
     sharded[i].append(items[start + i])
 
-  assert sum([len(fs) for fs in sharded]) == len(items)
+  assert sum(len(fs) for fs in sharded) == len(items)
   return sharded
 
 
@@ -248,10 +239,7 @@ def filter_paragraph(p):
       num_alpha = 0
     if re.match(_ONLY_ALPHA_RE, x):
       num_alpha += 1
-  if not found_sentence:
-    return True
-
-  return False
+  return not found_sentence
 
 
 @contextlib.contextmanager

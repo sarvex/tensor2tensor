@@ -134,15 +134,23 @@ def convert_videos_to_summaries(input_videos, output_videos, target_videos,
   all_input = np.concatenate((input_videos, target_videos), axis=1)
   all_output = np.concatenate((input_videos, output_videos), axis=1)
   output_summ_vals, _ = common_video.py_gif_summary(
-      "%s/output" % tag, all_output, max_outputs=max_outputs, fps=fps,
-      return_summary_value=True)
+      f"{tag}/output",
+      all_output,
+      max_outputs=max_outputs,
+      fps=fps,
+      return_summary_value=True,
+  )
   all_summaries.extend(output_summ_vals)
 
   # Optionally display ground truth.
   if display_ground_truth:
     input_summ_vals, _ = common_video.py_gif_summary(
-        "%s/input" % tag, all_input, max_outputs=max_outputs, fps=fps,
-        return_summary_value=True)
+        f"{tag}/input",
+        all_input,
+        max_outputs=max_outputs,
+        fps=fps,
+        return_summary_value=True,
+    )
     all_summaries.extend(input_summ_vals)
 
   # Frame-by-frame summaries
@@ -231,7 +239,7 @@ def summarize_video_metrics(hook_args):
   summary_values = []
   for name, array in six.iteritems(metrics_results):
     for ind, val in enumerate(array):
-      tag = "metric_{}/{}".format(name, ind)
+      tag = f"metric_{name}/{ind}"
       summary_values.append(tf.Summary.Value(tag=tag, simple_value=val))
   return summary_values
 
@@ -240,11 +248,10 @@ def debug_video_writer_factory(output_dir):
   """Creates a VideoWriter for debug videos."""
   if FLAGS.disable_ffmpeg:
     return common_video.IndividualFrameWriter(output_dir)
-  else:
-    output_path = os.path.join(output_dir, "video.avi")
-    return common_video.WholeVideoWriter(
-        fps=10, output_path=output_path, file_format="avi"
-    )
+  output_path = os.path.join(output_dir, "video.avi")
+  return common_video.WholeVideoWriter(
+      fps=10, output_path=output_path, file_format="avi"
+  )
 
 
 class VideoProblem(problem.Problem):
@@ -381,7 +388,7 @@ class VideoProblem(problem.Problem):
         "image/encoded": tf.FixedLenFeature((), tf.string),
         "image/format": tf.FixedLenFeature((), tf.string),
     }
-    data_fields.update(extra_data_fields)
+    data_fields |= extra_data_fields
 
     data_items_to_decoders = {
         "frame":
@@ -391,7 +398,7 @@ class VideoProblem(problem.Problem):
                 shape=[self.frame_height, self.frame_width, self.num_channels],
                 channels=self.num_channels),
     }
-    data_items_to_decoders.update(extra_data_items_to_decoders)
+    data_items_to_decoders |= extra_data_items_to_decoders
 
     return data_fields, data_items_to_decoders
 
@@ -447,8 +454,8 @@ class VideoProblem(problem.Problem):
           features["targets"] = s2
         else:
           s1, s2 = split_on_batch(v)
-          features["input_%s" % k] = s1
-          features["target_%s" % k] = s2
+          features[f"input_{k}"] = s1
+          features[f"target_{k}"] = s2
       return features
 
     # Batch and construct features.
@@ -534,11 +541,12 @@ class VideoProblem(problem.Problem):
     return dataset
 
   def eval_metrics(self):
-    eval_metrics = [
-        metrics.Metrics.ACC, metrics.Metrics.ACC_PER_SEQ,
-        metrics.Metrics.NEG_LOG_PERPLEXITY, metrics.Metrics.IMAGE_SUMMARY
+    return [
+        metrics.Metrics.ACC,
+        metrics.Metrics.ACC_PER_SEQ,
+        metrics.Metrics.NEG_LOG_PERPLEXITY,
+        metrics.Metrics.IMAGE_SUMMARY,
     ]
-    return eval_metrics
 
   def validate_frame(self, frame):
     height, width, channels = frame.shape
@@ -686,11 +694,11 @@ class VideoProblemOld(problem.Problem):
     return data_fields, data_items_to_decoders
 
   def eval_metrics(self):
-    eval_metrics = [
-        metrics.Metrics.ACC, metrics.Metrics.ACC_TOP5,
-        metrics.Metrics.NEG_LOG_PERPLEXITY
+    return [
+        metrics.Metrics.ACC,
+        metrics.Metrics.ACC_TOP5,
+        metrics.Metrics.NEG_LOG_PERPLEXITY,
     ]
-    return eval_metrics
 
 
 class VideoAugmentationProblem(VideoProblem):

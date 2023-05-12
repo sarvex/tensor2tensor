@@ -101,7 +101,7 @@ class TextProblems(tf.test.TestCase):
         f.write(" ".join([str(x) for x in targets]) + "\n")
 
   def testTxtLineIterator(self):
-    lines = [line for line in text_problems.txt_line_iterator(self.inputs_file)]
+    lines = list(text_problems.txt_line_iterator(self.inputs_file))
     self.assertEqual(lines, self.inputs)
 
   def testText2TextTxtIterator(self):
@@ -177,8 +177,7 @@ class TextProblems(tf.test.TestCase):
     examples = []
     exhausted = False
     with self.test_session() as sess:
-      examples.append(sess.run(features))
-      examples.append(sess.run(features))
+      examples.extend((sess.run(features), sess.run(features)))
       try:
         sess.run(features)
       except tf.errors.OutOfRangeError:
@@ -403,7 +402,7 @@ class DistributedText2TextProblemsTest(tf.test.TestCase):
 
     for text in problem.generate_text_for_vocab(tmp_dir, tmp_dir):
       # All the vocabulary is coming from training input shards.
-      self.assertTrue("train_" in text, "train is not in %s" % text)
+      self.assertTrue("train_" in text, f"train is not in {text}")
 
 
 if __name__ == "__main__":

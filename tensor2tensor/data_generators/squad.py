@@ -57,10 +57,7 @@ def _generate_examples(tmp_dir, dataset_split):
 
   version = squad["version"]
   for article in squad["data"]:
-    if "title" in article:
-      title = article["title"].strip()
-    else:
-      title = "no title"
+    title = article["title"].strip() if "title" in article else "no title"
     for paragraph in article["paragraphs"]:
       context = paragraph["context"].strip()
       for qa in paragraph["qas"]:
@@ -69,9 +66,7 @@ def _generate_examples(tmp_dir, dataset_split):
         answer_starts = [answer["answer_start"] for answer in qa["answers"]]
         answers = [answer["text"].strip() for answer in qa["answers"]]
 
-        # Features currently used are "context", "question", and "answers".
-        # Others are extracted here for the ease of future expansions.
-        example = {
+        yield {
             "version": version,
             "title": title,
             "context": context,
@@ -82,7 +77,6 @@ def _generate_examples(tmp_dir, dataset_split):
             "num_answers": len(answers),
             "is_supervised": True,
         }
-        yield example
 
 
 @registry.register_problem
@@ -96,9 +90,8 @@ class SquadText2text(text_problems.Text2TextProblem):
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     for example in _generate_examples(tmp_dir, dataset_split):
       yield {
-          "inputs": "squad context: %s question: %s" % (
-              example["context"], example["question"]),
-          # TODO(ddohan, wgaj): Figure out a way of extracting all answers.
+          "inputs":
+          f'squad context: {example["context"]} question: {example["question"]}',
           "targets": example["answers"][0],
       }
 
@@ -222,9 +215,7 @@ class SquadConcatPositioned(SquadConcat):
     i = 0
     while i < len(context) - len(targets):
       if context[i: i + len(targets)] == targets:
-        # emit answer's position and length.
-        targets_new.append(i)
-        targets_new.append(len(targets))
+        targets_new.extend((i, len(targets)))
       i += 1
     return targets_new
 

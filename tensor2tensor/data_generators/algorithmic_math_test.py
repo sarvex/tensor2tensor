@@ -38,12 +38,11 @@ class AlgorithmicMathTest(tf.test.TestCase):
       lhs, rhs = expression.split("=")
 
       # Solve for the solve-var.
-      result = sympy.solve("%s-(%s)" % (lhs, rhs), solve_var)
+      result = sympy.solve(f"{lhs}-({rhs})", solve_var)
       target_expression = dataset_objects.int_decoder(d["targets"])
 
       # Check that the target and sympy's solutions are equivalent.
-      self.assertEqual(
-          0, sympy.simplify(str(result[0]) + "-(%s)" % target_expression))
+      self.assertEqual(0, sympy.simplify(f"{str(result[0])}-({target_expression})"))
     self.assertEqual(counter, 10)
 
   def testAlgebraSimplify(self):
@@ -55,7 +54,7 @@ class AlgorithmicMathTest(tf.test.TestCase):
       target = dataset_objects.int_decoder(d["targets"])
 
       # Check that the input and output are equivalent expressions.
-      self.assertEqual(0, sympy.simplify("%s-(%s)" % (expression, target)))
+      self.assertEqual(0, sympy.simplify(f"{expression}-({target})"))
     self.assertEqual(counter, 10)
 
   def testCalculusIntegrate(self):
@@ -75,7 +74,7 @@ class AlgorithmicMathTest(tf.test.TestCase):
       derivative = str(sympy.diff(target, var))
 
       # Check that the derivative of the integral equals the input.
-      self.assertEqual(0, sympy.simplify("%s-(%s)" % (expression, derivative)))
+      self.assertEqual(0, sympy.simplify(f"{expression}-({derivative})"))
     self.assertEqual(counter, 10)
 
 

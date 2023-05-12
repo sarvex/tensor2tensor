@@ -40,7 +40,7 @@ flags.DEFINE_string("ps", "", "Comma-separated list of ps addresses")
 
 
 def main(_):
-  if not (FLAGS.masters and FLAGS.ps):
+  if not FLAGS.masters or not FLAGS.ps:
     raise ValueError("Must provide --masters and --ps")
 
   masters = FLAGS.masters.split(",")
@@ -59,7 +59,7 @@ def main(_):
   # Trainer configs
   for idx, addr in enumerate(masters):
     cmd_line_flags = [
-        "--master=grpc://%s" % addr,
+        f"--master=grpc://{addr}",
         "--ps_replicas=%d" % len(ps),
         "--worker_replicas=%d" % len(masters),
         "--worker_gpu=%d" % (0 if is_sync else 1),
@@ -71,15 +71,14 @@ def main(_):
     if is_sync:
       task_type = "master"
       cmd_line_flags.append("--worker_job='/job:master'")
+    elif idx == 0:
+      task_type = "chief"
+      idx = 0
+      cmd_line_flags.append("--worker_job='/job:chief'")
     else:
-      if idx == 0:
-        task_type = "chief"
-        idx = 0
-        cmd_line_flags.append("--worker_job='/job:chief'")
-      else:
-        task_type = "worker"
-        idx -= 1
-        cmd_line_flags.append("--worker_job='/job:worker'")
+      task_type = "worker"
+      idx -= 1
+      cmd_line_flags.append("--worker_job='/job:worker'")
 
     tf_config = json.dumps({
         "cluster": cluster,
@@ -92,6 +91,7 @@ def main(_):
     cmd_line_flags = " ".join(cmd_line_flags)
     print("'%s'\t%s" % (tf_config, cmd_line_flags))
 
+  cmd_line_flags = "--schedule=run_std_server"
   # Std server configs
   for idx, addr in enumerate(ps):
     tf_config = json.dumps({
@@ -102,7 +102,6 @@ def main(_):
         },
         "environment": "cloud",
     })
-    cmd_line_flags = "--schedule=run_std_server"
     print("'%s'\t%s" % (tf_config, cmd_line_flags))
 
 

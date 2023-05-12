@@ -98,16 +98,14 @@ def _raw_sentences(paracrawl_file):
   """
   for line_utf8 in paracrawl_file:
     line_uni = line_utf8.decode('UTF-8')
-    text_match = re.match(r' +<seg>(.*)</seg>$', line_uni)
-    if text_match:
-      txt = text_match.group(1)
+    if text_match := re.match(r' +<seg>(.*)</seg>$', line_uni):
+      txt = text_match[1]
       txt = re.sub(r'&amp;', r'&', txt)
       txt = re.sub(r'& ?amp;', r'&', txt)
       txt = re.sub(r'& ?apos;', r"'", txt)
       txt = re.sub(r'& ?quot;', r'"', txt)
       txt = re.sub(r'& ?lt;', r'<', txt)
-      txt = re.sub(r'& ?gt;', r'>', txt)
-      yield txt
+      yield re.sub(r'& ?gt;', r'>', txt)
 
 
 def clean_en_xx_pairs(en_xx_pairs):

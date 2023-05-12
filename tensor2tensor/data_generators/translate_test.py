@@ -74,9 +74,7 @@ class TranslateTest(tf.test.TestCase):
     translate.compile_data(self.tmp_dir, self.DATASETS, filename)
 
     count = 0
-    for i, example in enumerate(
-        text_problems.text2text_txt_iterator(filepath + ".lang1",
-                                             filepath + ".lang2")):
+    for i, example in enumerate(text_problems.text2text_txt_iterator(f"{filepath}.lang1", f"{filepath}.lang2")):
       expected = self.data[i]
       self.assertEqual(list(expected), [example["inputs"], example["targets"]])
       count += 1

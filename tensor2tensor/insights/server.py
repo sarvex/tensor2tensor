@@ -183,8 +183,7 @@ def main(_):
     Returns:
       The landing page html text.
     """
-    if (path == "index.js" or
-        path == "webcomponentsjs/webcomponents-lite.js"):
+    if path in ["index.js", "webcomponentsjs/webcomponents-lite.js"]:
       # Some vulcanizing methods bundle the javascript into a index.js file
       # paired with index.html but leave two important webcomponents js files
       # outside of the bundle.  If requesting those special files, fetch them

@@ -82,7 +82,7 @@ def main(_):
     max_target_length = max(max_target_length, len(targets))
     if FLAGS.print_all:
       for k, v in six.iteritems(x.features.feature):
-        print("%s: %s" % (k, v.int64_list.value))
+        print(f"{k}: {v.int64_list.value}")
 
   print("total_sequences: %d" % total_sequences)
   print("total_input_tokens: %d" % total_input_tokens)

@@ -62,7 +62,7 @@ class SentimentYelpFull(text_problems.Text2ClassProblem):
 
   def doc_generator(self, yelp_dir, dataset, include_label=False):
 
-    file_path = os.path.join(yelp_dir, dataset + ".csv")
+    file_path = os.path.join(yelp_dir, f"{dataset}.csv")
     with tf.gfile.Open(file_path) as yelp_f:
       lines = yelp_f.readlines()
       for line in lines:

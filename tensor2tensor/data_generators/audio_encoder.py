@@ -54,11 +54,11 @@ class AudioEncoder(object):
     # TODO(chorowski): the directory may not be writable, this should fallback
     # to a temp path, and provide instructions for installing sox.
     if s.endswith(".mp3"):
-      out_filepath = s[:-4] + ".wav"
+      out_filepath = f"{s[:-4]}.wav"
       convert_to_wav(s, out_filepath, ["--guard"])
       s = out_filepath
     elif not s.endswith(".wav"):
-      out_filepath = s + ".wav"
+      out_filepath = f"{s}.wav"
       convert_to_wav(s, out_filepath)
       s = out_filepath
     rate, data = wavfile.read(s)

@@ -54,11 +54,7 @@ def actnorm(name, x, x_mask, inverse, init, logscale_factor=3.0):
         "log_w", (n_channels), log_w_init, init,
         tf.zeros_initializer) * logscale_factor
 
-    if not inverse:
-      x = (x + b) * tf.exp(log_w)
-    else:
-      x = x * tf.exp(-log_w) - b
-
+    x = (x + b) * tf.exp(log_w) if not inverse else x * tf.exp(-log_w) - b
     x_length = tf.reduce_sum(x_mask, -1)
     logabsdet = x_length * tf.reduce_sum(log_w)
     if inverse:
@@ -179,10 +175,7 @@ def additive_coupling(
         init=init,
         decoder_self_attention_bias=bias,
         **kwargs)
-    if not inverse:
-      z_tr = x_tr + loc
-    else:
-      z_tr = x_tr - loc
+    z_tr = x_tr + loc if not inverse else x_tr - loc
     logabsdet = tf.constant(0.0, dtype=tf.float32)
 
     tf.summary.histogram("_loc", tf.boolean_mask(loc, mask))
@@ -232,11 +225,7 @@ def affine_coupling(
         **kwargs)
     loc, unconstrained_scale = tf.split(transform_params, 2, axis=-1)
     scale = tf.sigmoid(unconstrained_scale + 2.0)
-    if not inverse:
-      z_tr = (x_tr + loc) * scale
-    else:
-      z_tr = x_tr / scale - loc
-
+    z_tr = (x_tr + loc) * scale if not inverse else x_tr / scale - loc
     logabsdet = gops.reduce_sum_over_lc(tf.log(scale), mask)  # [B]
     if inverse:
       logabsdet *= -1
@@ -253,18 +242,29 @@ def flow_step_glow(name, x, x_mask, split_dims, inverse, init, dtype, **kwargs):
   conv_fn = multihead_invertible_1x1_conv_np
   with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
     reversible_ops = []
+    identity_first = True
     for _, split_dim in enumerate(split_dims):
-      identity_first = True
       reversible_ops += [functools.partial(actnorm, name="actnorm", init=init)]
       if split_dim in "ca":
         multihead_split = "a" if split_dim == "c" else "c"
-        reversible_ops += [functools.partial(
-            conv_fn, name="conv_{}".format(multihead_split),
-            multihead_split=multihead_split, dtype=dtype)]
-      reversible_ops += [functools.partial(
-          coupling, name="coupling_{}".format(split_dim),
-          split_dim=split_dim, identity_first=identity_first, init=init,
-          **kwargs)]
+        reversible_ops += [
+            functools.partial(
+                conv_fn,
+                name=f"conv_{multihead_split}",
+                multihead_split=multihead_split,
+                dtype=dtype,
+            )
+        ]
+      reversible_ops += [
+          functools.partial(
+              coupling,
+              name=f"coupling_{split_dim}",
+              split_dim=split_dim,
+              identity_first=identity_first,
+              init=init,
+              **kwargs,
+          )
+      ]
     if inverse:
       reversible_ops = reversible_ops[::-1]
 
@@ -280,15 +280,27 @@ def flow_level(
   """One level of flow."""
   flow_step_fn = flow_step_glow
   with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-    reversible_ops = []
-    for step in np.arange(depth):
-      reversible_ops += [functools.partial(
-          flow_step_fn, name="{}_step".format(step), split_dims=split_dims,
-          init=init, dtype=dtype, **kwargs)]
+    reversible_ops = [
+        functools.partial(
+            flow_step_fn,
+            name=f"{step}_step",
+            split_dims=split_dims,
+            init=init,
+            dtype=dtype,
+            **kwargs,
+        ) for step in np.arange(depth)
+    ]
     if prior:
-      reversible_ops += [functools.partial(
-          coupling, name="{}_prior".format(depth), split_dim="c",
-          identity_first=True, init=init, **kwargs)]
+      reversible_ops += [
+          functools.partial(
+              coupling,
+              name=f"{depth}_prior",
+              split_dim="c",
+              identity_first=True,
+              init=init,
+              **kwargs,
+          )
+      ]
     if inverse:
       reversible_ops = reversible_ops[::-1]
 
@@ -396,20 +408,28 @@ def glow(
       split_zs = []
       for level in range(n_levels):
         if level > 0:
-          x, z, log_p_z = split(
-              "{}_split".format(level), x, x_mask, inverse, dtype)
+          x, z, log_p_z = split(f"{level}_split", x, x_mask, inverse, dtype)
           log_ps += log_p_z
           split_zs.append(z)
 
-          x = squeeze("{}_squeeze".format(level), x, factor, inverse)
+          x = squeeze(f"{level}_squeeze", x, factor, inverse)
           x_mask = max_x_mask[:, ::factor**level]
           self_attn_bias = max_self_attn_bias[..., ::factor**level]
 
         prior = level < n_levels - 1
         x, logabsdet = flow_level(
-            "{}_level".format(level), x, x_mask, depths[level],
-            split_plans[level], prior, inverse, init, dtype,
-            decoder_self_attention_bias=self_attn_bias, **kwargs)
+            f"{level}_level",
+            x,
+            x_mask,
+            depths[level],
+            split_plans[level],
+            prior,
+            inverse,
+            init,
+            dtype,
+            decoder_self_attention_bias=self_attn_bias,
+            **kwargs,
+        )
         logabsdets += logabsdet  # (B)
 
       log_p_base = gops.standard_normal_density(x, x_mask)
@@ -428,17 +448,32 @@ def glow(
         self_attn_bias = max_self_attn_bias[..., ::factor**level]
         prior = level < n_levels - 1
         x, logabsdet = flow_level(
-            "{}_level".format(level), x, x_mask, depths[level],
-            split_plans[level], prior, inverse, init, dtype,
-            decoder_self_attention_bias=self_attn_bias, **kwargs)
+            f"{level}_level",
+            x,
+            x_mask,
+            depths[level],
+            split_plans[level],
+            prior,
+            inverse,
+            init,
+            dtype,
+            decoder_self_attention_bias=self_attn_bias,
+            **kwargs,
+        )
         logabsdets += logabsdet
 
         if level > 0:
-          x = squeeze("{}_squeeze".format(level), x, factor, inverse)
+          x = squeeze(f"{level}_squeeze", x, factor, inverse)
           x_mask = max_x_mask[:, ::factor**(level-1)]
           x, _, log_p_z = split(
-              "{}_split".format(level), x, x_mask, inverse, temp=temp,
-              dtype=dtype, z=split_zs[level-1])
+              f"{level}_split",
+              x,
+              x_mask,
+              inverse,
+              temp=temp,
+              dtype=dtype,
+              z=split_zs[level - 1],
+          )
           log_ps += log_p_z
 
       return x, logabsdets, log_ps, None

@@ -72,8 +72,8 @@ class DialogPersonachat16k(dialog_abstract.DialogAbstract):
     elif self._zipped_data[-3:] == 'zip':
       zip_file = zipfile.ZipFile(self._zipped_data, 'r')
     else:
-      print('problem_log: ' + self._zipped_data +
-            ' is not a .zip or .gz file, so I can\'t extract it.')
+      print((f'problem_log: {self._zipped_data}' +
+             ' is not a .zip or .gz file, so I can\'t extract it.'))
 
     zip_file.extractall(self._raw_data)
     zip_file.close()
@@ -92,74 +92,68 @@ class DialogPersonachat16k(dialog_abstract.DialogAbstract):
 
     # Open the 6 files.
     trainsource, traintarget, devsource, devtarget, testsource, testtarget = \
-        self.open_6_files()
+          self.open_6_files()
 
-    # Open the raw data.
-    train_dialogs = open(
+    with open(
         os.path.join(self._raw_data, 'train_none_original_no_cands.txt'),
-        errors='ignore')
-    valid_dialogs = open(
-        os.path.join(self._raw_data, 'valid_none_original_no_cands.txt'),
-        errors='ignore')
-    filenames = [train_dialogs, valid_dialogs]
+        errors='ignore') as train_dialogs:
+      valid_dialogs = open(
+          os.path.join(self._raw_data, 'valid_none_original_no_cands.txt'),
+          errors='ignore')
+      filenames = [train_dialogs, valid_dialogs]
 
-    # Copy the data to a new file.
-    with open(os.path.join(self._raw_data,
-                           'full_none_original_no_cands.txt'), 'w') as outfile:
-      for fname in filenames:
-        with fname as infile:
-          outfile.write(infile.read())
-    train_dialogs.close()
+      # Copy the data to a new file.
+      with open(os.path.join(self._raw_data,
+                             'full_none_original_no_cands.txt'), 'w') as outfile:
+        for fname in filenames:
+          with fname as infile:
+            outfile.write(infile.read())
     valid_dialogs.close()
 
-    # Open the big file.
-    dialogs = open(
+    with open(
         os.path.join(self._raw_data, 'full_none_original_no_cands.txt'),
-        errors='ignore')
+        errors='ignore') as dialogs:
+      number_of_lines = 0
+      current_dialog = ''
+      dialog_list = []
+      dialog_silenced = False
+        # Iterate through the file and build list of dialogs separated by __eou__.
+      for line in dialogs:
+        if number_of_lines % 10000 == 0:
+          print(f'problem_log: Parsed {str(number_of_lines)} lines.')
 
-    number_of_lines = 0
-    current_dialog = ''
-    dialog_list = []
-    dialog_silenced = False
-    # Iterate through the file and build list of dialogs separated by __eou__.
-    for line in dialogs:
-      if number_of_lines % 10000 == 0:
-        print('problem_log: Parsed ' + str(number_of_lines) + ' lines.')
-
-      dialog_id = line.split()[0]
-      # Check if this is a refurbished line.
-      if ('__SILENCE__' not in line and
+        dialog_id = line.split()[0]
+            # Check if this is a refurbished line.
+        if ('__SILENCE__' not in line and
           ((dialog_silenced and dialog_id == '1') or not dialog_silenced)):
-        dialog_silenced = False
-        number_of_lines += 1
+          dialog_silenced = False
+          number_of_lines += 1
 
-        # Get the utterances.
-        source = ' '.join(line.split('\t')[0].split()[1:])
-        target = line.split('\t')[1].strip('\n')
-        source = self.clean_line(source.lower())
-        target = self.clean_line(target.lower())
+          # Get the utterances.
+          source = ' '.join(line.split('\t')[0].split()[1:])
+          target = line.split('\t')[1].strip('\n')
+          source = self.clean_line(source.lower())
+          target = self.clean_line(target.lower())
 
-        # Whether this is a new dialog.
-        if dialog_id == '1' and current_dialog:
-          dialog_list.append(current_dialog)
-          current_dialog = source + '__eou__' + target + '__eou__'
+                # Whether this is a new dialog.
+          if dialog_id == '1' and current_dialog:
+            dialog_list.append(current_dialog)
+            current_dialog = f'{source}__eou__{target}__eou__'
+          else:
+            current_dialog += f'{source}__eou__{target}__eou__'
         else:
-          current_dialog += source + '__eou__' + target + '__eou__'
-      else:
-        dialog_silenced = True
+          dialog_silenced = True
 
-      if (self.targeted_dataset_size != 0 and
-          self.targeted_dataset_size < number_of_lines):
-        break
-    dialogs.close()
-
+        if (self.targeted_dataset_size != 0 and
+            self.targeted_dataset_size < number_of_lines):
+          break
     vocabulary = collections.Counter()
     number_of_dialogs = 0
     dataset_split_counter = 0
     # Build the dataset.
     for dialog in dialog_list:
       if number_of_dialogs % 1000 == 0:
-        print('problem_log: Parsed ' + str(number_of_dialogs) + ' dialogs.')
+        print(f'problem_log: Parsed {str(number_of_dialogs)} dialogs.')
 
       # Check which file we should write to.
       if dataset_split_counter <= self.dataset_split['train']:
@@ -174,10 +168,8 @@ class DialogPersonachat16k(dialog_abstract.DialogAbstract):
         target_file = testtarget
 
       utterances = dialog.split('__eou__')[:-1]
-      i = 0
       # Loop through the dialog.
-      for utterance in utterances:
-        i += 1
+      for i, utterance in enumerate(utterances, start=1):
         # Build vocabulary.
         if dataset_split_counter <= self.dataset_split['train']:
           words = utterance.split()

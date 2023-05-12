@@ -73,9 +73,9 @@ class WinogradNLI(text_problems.TextConcat2ClassProblem):
     return ["not_entailment", "entailment"]
 
   def _maybe_download_corpora(self, tmp_dir):
-    wnli_filename = "WNLI.zip"
     wnli_finalpath = os.path.join(tmp_dir, "WNLI")
     if not tf.gfile.Exists(wnli_finalpath):
+      wnli_filename = "WNLI.zip"
       zip_filepath = generator_utils.maybe_download(
           tmp_dir, wnli_filename, self._WNLI_URL)
       zip_ref = zipfile.ZipFile(zip_filepath, "r")
@@ -103,8 +103,7 @@ class WinogradNLI(text_problems.TextConcat2ClassProblem):
       filesplit = "dev.tsv"
 
     filename = os.path.join(wnli_dir, filesplit)
-    for example in self.example_generator(filename):
-      yield example
+    yield from self.example_generator(filename)
 
 
 @registry.register_problem

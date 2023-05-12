@@ -52,8 +52,8 @@ class LanguagemodelWikiXmlV8kL1k(text_problems.ChoppedTextProblem):
     compressed_filename = os.path.basename(self.corpus_url)
     compressed_filepath = os.path.join(tmp_dir, compressed_filename)
     decompressed_filepath = compressed_filepath[:-4]
-    split_file_prefix = decompressed_filepath + "-part-"
-    split_filepattern = split_file_prefix + "?????"
+    split_file_prefix = f"{decompressed_filepath}-part-"
+    split_filepattern = f"{split_file_prefix}?????"
     split_files = sorted(tf.gfile.Glob(split_filepattern))
     if not split_files:
       if not tf.gfile.Exists(decompressed_filepath):
@@ -164,8 +164,7 @@ class LanguagemodelWikiScramble(LanguagemodelWikiXmlV8kL1k):
     seq = np.concatenate(
         (seq[:num_permute][partial_permutation], seq[num_permute:]))
     seq = seq[inverse_full_permutation]
-    seq = list(seq)
-    return seq
+    return list(seq)
 
 
 @registry.register_problem
@@ -301,9 +300,7 @@ def _page_to_text(page):
   assert end_tag_pos != -1
   end_tag_pos += len(u">")
   end_pos = page.find(u"</text>")
-  if end_pos == -1:
-    return u""
-  return page[end_tag_pos:end_pos]
+  return u"" if end_pos == -1 else page[end_tag_pos:end_pos]
 
 
 def _find_and_replace(text, start_string, end_string, replace_fn):
@@ -363,9 +360,8 @@ def _remove_double_brackets(text):
       return ""
     # keep the part after the bar.
     bar_pos = s.find(u"|")
-    if bar_pos == -1:
-      return s
-    return s[bar_pos + 1:]
+    return s if bar_pos == -1 else s[bar_pos + 1:]
+
   return _find_and_replace(text, u"[[", u"]]", replacement_fn)
 
 

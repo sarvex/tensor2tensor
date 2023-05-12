@@ -274,7 +274,7 @@ class ImageVqav2Tokens10kLabels3k(ImageQuestion2MultilabelProblem):
       question = vocab_encoder.encode(anno["question"])
       answer = [label_encoder.encode(ans) for ans in anno["answer"]]
       answer = answer if answer else [0]  # 0 indicates padding
-      image_filename = "COCO_" + prefix + "_" + str(image_id).zfill(12) + ".jpg"
+      image_filename = f"COCO_{prefix}_{str(image_id).zfill(12)}.jpg"
       image_filepath = os.path.join(tmp_dir, prefix, image_filename)
       with tf.gfile.Open(image_filepath, "r") as f:
         encoded_image_data = f.read()

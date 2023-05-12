@@ -45,14 +45,14 @@ def _original_vocab(tmp_dir):
   """
   vocab_url = ("http://download.tensorflow.org/models/LM_LSTM_CNN/"
                "vocab-2016-09-10.txt")
-  vocab_filename = os.path.basename(vocab_url + ".en")
+  vocab_filename = os.path.basename(f"{vocab_url}.en")
   vocab_filepath = os.path.join(tmp_dir, vocab_filename)
   if not os.path.exists(vocab_filepath):
     generator_utils.maybe_download(tmp_dir, vocab_filename, vocab_url)
-  return set([
+  return {
       text_encoder.native_to_unicode(l.strip())
       for l in tf.gfile.Open(vocab_filepath)
-  ])
+  }
 
 
 def _replace_oov(original_vocab, line):

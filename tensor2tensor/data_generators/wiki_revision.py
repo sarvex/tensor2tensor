@@ -147,97 +147,85 @@ class WikiRevision(text_problems.Text2TextProblem):
 
   def aggregate_job_stats(self):
     # Aggregate job stats for output.
-    stat = []
-    # Run stats.
-    stat.append("Flags for job:\n"
-                "Dev shards: {}\n"
-                "Train shards: {}\n"
-                "Revision skip factor: {}\n"
-                "Max page size: 2**{}\n"
-                "Introduce errors: {}\n"
-                "Max edit ratio: {}\n"
-                "Percent Identical Examples: {}\n"
-                "".format(FLAGS.wiki_revision_num_dev_shards,
-                          FLAGS.wiki_revision_num_train_shards,
-                          FLAGS.wiki_revision_revision_skip_factor,
-                          FLAGS.wiki_revision_max_page_size_exp,
-                          FLAGS.wiki_revision_introduce_errors,
-                          FLAGS.wiki_revision_max_equal_to_diff_ratio,
-                          FLAGS.wiki_revision_percent_identical_examples))
-
-    # File stats.
-    stat.append("corpus files: {}\n"
-                "\tnames: {}\n"
-                "\tpages per input file: {:.1f}\n"
-                "".format(
-                    len(self.corpus_files), self.corpus_files,
-                    (0 if not self.corpus_files else
-                     self.num_pages / len(self.corpus_files))))
-    # Page stats.
-    stat.append(
-        "pages processed: {}\n"
-        "\trevisions per page: {:.2f}, total: {}\n"
-        "\trevisions admitted per page: {:.2f}, percent of total: {:.2f}\n"
-        "".format(
-            self.num_pages, (0 if not self.num_pages else
-                             self.num_revisions_total / self.num_pages),
-            self.num_revisions_total,
-            (0 if not self.num_pages else
-             self.num_revisions_admitted / self.num_pages),
-            (0 if not self.num_revisions_total else
-             100 * self.num_revisions_admitted / self.num_revisions_total)))
-    # Revision stats.
-    stat.append(
-        "revisions admitted: {}\n"
-        "\texamples generated per revision: {:.2f}\n"
-        "".format(self.num_revisions_admitted,
-                  (0 if not self.num_revisions_admitted else
-                   self.num_total_examples / self.num_revisions_admitted)))
-    # Example stats.
-    stat.append(
-        "examples generated: {}\n"
-        "\twith error introduced: {}, percent of total: {:.2f}\n"
-        "\ttotal errors introduced: {}, errors per errorred example: {:.2f}\n"
-        "\texamples thrown out: {}\n"
-        "\t\ttoo long: {}\n"
-        "\t\tidentity: {}\n"
-        "\t\tedit distance: {}\n"
-        "\tremaining identity examples: {}\n"
-        "\tratio identity (actual, desired): {:.3f}, {}\n"
-        "".format(
-            self.num_total_examples, self.num_examples_with_introduced_error,
-            (0 if not self.num_total_examples else 100 *
-             self.num_examples_with_introduced_error / self.num_total_examples),
-            self.num_introduced_errors,
-            (0 if not self.num_examples_with_introduced_error else
+    stat = [
+        f"Flags for job:\nDev shards: {FLAGS.wiki_revision_num_dev_shards}\nTrain shards: {FLAGS.wiki_revision_num_train_shards}\nRevision skip factor: {FLAGS.wiki_revision_revision_skip_factor}\nMax page size: 2**{FLAGS.wiki_revision_max_page_size_exp}\nIntroduce errors: {FLAGS.wiki_revision_introduce_errors}\nMax edit ratio: {FLAGS.wiki_revision_max_equal_to_diff_ratio}\nPercent Identical Examples: {FLAGS.wiki_revision_percent_identical_examples}\n",
+        ("corpus files: {}\n"
+         "\tnames: {}\n"
+         "\tpages per input file: {:.1f}\n"
+         "".format(
+             len(self.corpus_files),
+             self.corpus_files,
+             0 if not self.corpus_files else self.num_pages /
+             len(self.corpus_files),
+         )),
+        ("pages processed: {}\n"
+         "\trevisions per page: {:.2f}, total: {}\n"
+         "\trevisions admitted per page: {:.2f}, percent of total: {:.2f}\n"
+         "".format(
+             self.num_pages,
+             0 if not self.num_pages else self.num_revisions_total /
+             self.num_pages,
+             self.num_revisions_total,
+             0 if not self.num_pages else self.num_revisions_admitted /
+             self.num_pages,
+             0 if not self.num_revisions_total else 100 *
+             self.num_revisions_admitted / self.num_revisions_total,
+         )),
+        ("revisions admitted: {}\n"
+         "\texamples generated per revision: {:.2f}\n"
+         "".format(
+             self.num_revisions_admitted,
+             0 if not self.num_revisions_admitted else self.num_total_examples /
+             self.num_revisions_admitted,
+         )),
+        ("examples generated: {}\n"
+         "\twith error introduced: {}, percent of total: {:.2f}\n"
+         "\ttotal errors introduced: {}, errors per errorred example: {:.2f}\n"
+         "\texamples thrown out: {}\n"
+         "\t\ttoo long: {}\n"
+         "\t\tidentity: {}\n"
+         "\t\tedit distance: {}\n"
+         "\tremaining identity examples: {}\n"
+         "\tratio identity (actual, desired): {:.3f}, {}\n"
+         "".format(
+             self.num_total_examples,
+             self.num_examples_with_introduced_error,
+             0 if not self.num_total_examples else 100 *
+             self.num_examples_with_introduced_error / self.num_total_examples,
+             self.num_introduced_errors,
+             0 if not self.num_examples_with_introduced_error else
              self.num_introduced_errors /
-             self.num_examples_with_introduced_error),
-            self.num_examples_thrown_out_too_long +
-            self.num_examples_thrown_out_identity +
-            self.num_examples_thrown_out_edit_distance,
-            self.num_examples_thrown_out_too_long,
-            self.num_examples_thrown_out_identity,
-            self.num_examples_thrown_out_edit_distance,
-            self.num_identity_examples,
-            (0 if not self.num_total_examples else
-             self.num_identity_examples / self.num_total_examples),
-            FLAGS.wiki_revision_percent_identical_examples))
-    # Token stats.
-    stat.append("tokens generated: {}\n"
-                "\tsource: {}\n"
-                "\ttarget: {}\n"
-                "\tper example: {:.2f}\n"
-                "\t\tsource: {:.2f}\n"
-                "\t\ttarget: {:.2f}\n"
-                "".format(self.num_source_tokens + self.num_target_tokens,
-                          self.num_source_tokens, self.num_target_tokens,
-                          (0 if not self.num_total_examples else
-                           (self.num_source_tokens + self.num_target_tokens) /
-                           self.num_total_examples),
-                          (0 if not self.num_total_examples else
-                           self.num_source_tokens / self.num_total_examples),
-                          (0 if not self.num_total_examples else
-                           self.num_target_tokens / self.num_total_examples)))
+             self.num_examples_with_introduced_error,
+             self.num_examples_thrown_out_too_long +
+             self.num_examples_thrown_out_identity +
+             self.num_examples_thrown_out_edit_distance,
+             self.num_examples_thrown_out_too_long,
+             self.num_examples_thrown_out_identity,
+             self.num_examples_thrown_out_edit_distance,
+             self.num_identity_examples,
+             0 if not self.num_total_examples else self.num_identity_examples /
+             self.num_total_examples,
+             FLAGS.wiki_revision_percent_identical_examples,
+         )),
+        ("tokens generated: {}\n"
+         "\tsource: {}\n"
+         "\ttarget: {}\n"
+         "\tper example: {:.2f}\n"
+         "\t\tsource: {:.2f}\n"
+         "\t\ttarget: {:.2f}\n"
+         "".format(
+             self.num_source_tokens + self.num_target_tokens,
+             self.num_source_tokens,
+             self.num_target_tokens,
+             0 if not self.num_total_examples else
+             (self.num_source_tokens + self.num_target_tokens) /
+             self.num_total_examples,
+             0 if not self.num_total_examples else self.num_source_tokens /
+             self.num_total_examples,
+             0 if not self.num_total_examples else self.num_target_tokens /
+             self.num_total_examples,
+         )),
+    ]
     return "\n".join(stat)
 
   def generate_data(self, data_dir, tmp_dir, task_id=-1):
@@ -249,16 +237,8 @@ class WikiRevision(text_problems.Text2TextProblem):
         return
 
     tf.logging.info(
-        "Flags for job (task_id {}): "
-        "Dev shards: {}, Train shards: {}, "
-        "Revision skip factor: {}, Max page size: 2**{}, Introduce errors: {},"
-        "Percent Identical Examples: {}"
-        "".format(task_id, FLAGS.wiki_revision_num_dev_shards,
-                  FLAGS.wiki_revision_num_train_shards,
-                  FLAGS.wiki_revision_revision_skip_factor,
-                  FLAGS.wiki_revision_max_page_size_exp,
-                  FLAGS.wiki_revision_introduce_errors,
-                  FLAGS.wiki_revision_percent_identical_examples))
+        f"Flags for job (task_id {task_id}): Dev shards: {FLAGS.wiki_revision_num_dev_shards}, Train shards: {FLAGS.wiki_revision_num_train_shards}, Revision skip factor: {FLAGS.wiki_revision_revision_skip_factor}, Max page size: 2**{FLAGS.wiki_revision_max_page_size_exp}, Introduce errors: {FLAGS.wiki_revision_introduce_errors},Percent Identical Examples: {FLAGS.wiki_revision_percent_identical_examples}"
+    )
 
     if FLAGS.wiki_revision_vocab_file:
       encoder = wiki_revision_utils.get_encoder_from_vocab(
@@ -290,9 +270,8 @@ class WikiRevision(text_problems.Text2TextProblem):
     generator_utils.shuffle_dataset([out_file])
 
     tf.logging.info(
-        "Job stats: identity examples: {}, total examples {}, ratio: {}".format(
-            self.num_identity_examples, self.num_total_examples,
-            (1 + self.num_identity_examples) / (1 + self.num_total_examples)))
+        f"Job stats: identity examples: {self.num_identity_examples}, total examples {self.num_total_examples}, ratio: {(1 + self.num_identity_examples) / (1 + self.num_total_examples)}"
+    )
 
     job_stats_string = self.aggregate_job_stats()
     out_dir, filename = out_file.replace("-unshuffled", "").rsplit("/", 1)
@@ -303,7 +282,7 @@ class WikiRevision(text_problems.Text2TextProblem):
       tf.logging.info("Skipping writing stats because output file exists.")
     else:
       with tf.gfile.Open(stats_file_path, "w") as out:
-        tf.logging.info("Writing job stats to {}".format(stats_file_path))
+        tf.logging.info(f"Writing job stats to {stats_file_path}")
         out.write(job_stats_string)
 
     tf.logging.info(job_stats_string)
@@ -312,19 +291,16 @@ class WikiRevision(text_problems.Text2TextProblem):
     for page in wiki_revision_utils.corpus_page_generator(
         corpus_files, tmp_dir, FLAGS.wiki_revision_max_page_size_exp):
       self.num_pages += 1
-      examples = self.page_to_examples(page, encoder)
-      for x in examples:
-        yield x
+      yield from self.page_to_examples(page, encoder)
       if self.num_total_examples % 100000 == 0:
         tf.logging.info(
-            u"page count={} num_total_examples={} id={} title={}".format(
-                self.num_pages, self.num_total_examples, page["id"],
-                page["title"]))
+            f'page count={self.num_pages} num_total_examples={self.num_total_examples} id={page["id"]} title={page["title"]}'
+        )
       if (self.max_examples_per_shard and
           self.num_total_examples >= self.max_examples_per_shard):
         tf.logging.info(
-            "Examples per shard {} >= max_examples_per_shard {}. Shutting down."
-            .format(self.num_total_examples, self.max_examples_per_shard))
+            f"Examples per shard {self.num_total_examples} >= max_examples_per_shard {self.max_examples_per_shard}. Shutting down."
+        )
         break
     tf.logging.info(
         "Total pages: {}, total examples: {}, examples per page: {}".format(
@@ -416,9 +392,8 @@ class WikiRevision(text_problems.Text2TextProblem):
     cut_points = [(0, 0)]
     for tag, i1, i2, j1, j2 in opcodes:
       if tag == "equal":
-        for i in range(i1, i2 + 1):
-          if random.random() < cut_prob:
-            cut_points.append((i, i + j1 - i1))
+        cut_points.extend((i, i + j1 - i1) for i in range(i1, i2 + 1)
+                          if random.random() < cut_prob)
     cut_points.append((len(old_snapshot), len(new_snapshot)))
     src_tgt_pairs = []
     for cut_number in range(len(cut_points) - 1):

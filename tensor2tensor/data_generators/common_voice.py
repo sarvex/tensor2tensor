@@ -60,7 +60,7 @@ def _collect_data(directory):
       # skip header
       _ = next(transcript_reader)
       for transcript_line in transcript_reader:
-        media_name, label = transcript_line[0:2]
+        media_name, label = transcript_line[:2]
         filename = os.path.join(directory, media_name)
         data_files.append((media_name, filename, label))
   return data_files
@@ -221,7 +221,7 @@ class CommonVoiceTrainFullTestClean(CommonVoice):
       path = os.path.join(data_dir, "common_voice_clean")
       suffix = "test"
 
-    return "%s-%s%s*" % (path, suffix, shard_str)
+    return f"{path}-{suffix}{shard_str}*"
 
 
 @registry.register_problem()

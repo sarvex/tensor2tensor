@@ -98,8 +98,7 @@ class TimeseriesProblem(problem.Problem):
     raise NotImplementedError()
 
   def eval_metrics(self):
-    eval_metrics = [metrics.Metrics.RMSE]
-    return eval_metrics
+    return [metrics.Metrics.RMSE]
 
   @property
   def normalizing_constant(self):
@@ -283,79 +282,88 @@ class TimeseriesSyntheticDataSeries10Samples100k(TimeseriesProblem):
   @property
   def timeseries_params(self):
     """Parameters for each timeseries."""
-    timeseries_params = [{
-        "m": 0.006,
-        "b": 300.0,
-        "A": 50.0,
-        "freqcoeff": 1500.0,
-        "rndA": 15.0,
-        "fn": np.sin
-    }, {
-        "m": 0.000,
-        "b": 500.0,
-        "A": 35.0,
-        "freqcoeff": 3500.0,
-        "rndA": 25.0,
-        "fn": np.cos
-    }, {
-        "m": -0.003,
-        "b": 800.0,
-        "A": 65.0,
-        "freqcoeff": 2500.0,
-        "rndA": 5.0,
-        "fn": np.sin
-    }, {
-        "m": 0.009,
-        "b": 600.0,
-        "A": 20.0,
-        "freqcoeff": 1000.0,
-        "rndA": 1.0,
-        "fn": np.cos
-    }, {
-        "m": 0.002,
-        "b": 700.0,
-        "A": 40.0,
-        "freqcoeff": 2000.0,
-        "rndA": 35.0,
-        "fn": np.sin
-    }, {
-        "m": -0.008,
-        "b": 1000.0,
-        "A": 70.0,
-        "freqcoeff": 3000.0,
-        "rndA": 25.0,
-        "fn": np.cos
-    }, {
-        "m": 0.000,
-        "b": 100.0,
-        "A": 25.0,
-        "freqcoeff": 1500.0,
-        "rndA": 10.0,
-        "fn": np.sin
-    }, {
-        "m": 0.004,
-        "b": 1500.0,
-        "A": 54.0,
-        "freqcoeff": 900.0,
-        "rndA": 55.0,
-        "fn": np.cos
-    }, {
-        "m": 0.005,
-        "b": 2000.0,
-        "A": 32.0,
-        "freqcoeff": 1100.0,
-        "rndA": 43.0,
-        "fn": np.sin
-    }, {
-        "m": 0.010,
-        "b": 2500.0,
-        "A": 43.0,
-        "freqcoeff": 1900.0,
-        "rndA": 53.0,
-        "fn": np.cos
-    }]
-
-    return timeseries_params
+    return [
+        {
+            "m": 0.006,
+            "b": 300.0,
+            "A": 50.0,
+            "freqcoeff": 1500.0,
+            "rndA": 15.0,
+            "fn": np.sin,
+        },
+        {
+            "m": 0.000,
+            "b": 500.0,
+            "A": 35.0,
+            "freqcoeff": 3500.0,
+            "rndA": 25.0,
+            "fn": np.cos,
+        },
+        {
+            "m": -0.003,
+            "b": 800.0,
+            "A": 65.0,
+            "freqcoeff": 2500.0,
+            "rndA": 5.0,
+            "fn": np.sin,
+        },
+        {
+            "m": 0.009,
+            "b": 600.0,
+            "A": 20.0,
+            "freqcoeff": 1000.0,
+            "rndA": 1.0,
+            "fn": np.cos,
+        },
+        {
+            "m": 0.002,
+            "b": 700.0,
+            "A": 40.0,
+            "freqcoeff": 2000.0,
+            "rndA": 35.0,
+            "fn": np.sin,
+        },
+        {
+            "m": -0.008,
+            "b": 1000.0,
+            "A": 70.0,
+            "freqcoeff": 3000.0,
+            "rndA": 25.0,
+            "fn": np.cos,
+        },
+        {
+            "m": 0.000,
+            "b": 100.0,
+            "A": 25.0,
+            "freqcoeff": 1500.0,
+            "rndA": 10.0,
+            "fn": np.sin,
+        },
+        {
+            "m": 0.004,
+            "b": 1500.0,
+            "A": 54.0,
+            "freqcoeff": 900.0,
+            "rndA": 55.0,
+            "fn": np.cos,
+        },
+        {
+            "m": 0.005,
+            "b": 2000.0,
+            "A": 32.0,
+            "freqcoeff": 1100.0,
+            "rndA": 43.0,
+            "fn": np.sin,
+        },
+        {
+            "m": 0.010,
+            "b": 2500.0,
+            "A": 43.0,
+            "freqcoeff": 1900.0,
+            "rndA": 53.0,
+            "fn": np.cos,
+        },
+    ]
 
   def timeseries_dataset(self):
     series = np.array(

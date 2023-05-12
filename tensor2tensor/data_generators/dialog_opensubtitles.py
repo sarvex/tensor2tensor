@@ -59,8 +59,8 @@ class DialogOpensubtitles64k2009(dialog_abstract.DialogAbstract):
     if self._zipped_data[-3:] == 'zip' or self._zipped_data[-2:] == 'gz':
       zip_file = zipfile.ZipFile(self._zipped_data, 'r')
     else:
-      print('problem_log: ' + self._zipped_data +
-            ' is not a .zip or .gz file, so I can\'t extract it.')
+      print((f'problem_log: {self._zipped_data}' +
+             ' is not a .zip or .gz file, so I can\'t extract it.'))
 
     zip_file.extractall(self._raw_data_dir)
     zip_file.close()
@@ -79,14 +79,15 @@ class DialogOpensubtitles64k2009(dialog_abstract.DialogAbstract):
 
     year = '' if self.dataset_version == 2009 else str(self.dataset_version)
     # Set the raw data directory and data.
-    self.raw_data_dir = os.path.join('/'.join(self._data_dir.split('/')[:-1]),
-                                     'raw_data_' + str(self.dataset_version))
-    self.raw_data = os.path.join(self._raw_data_dir, 'OpenSubtitles' + year)
+    self.raw_data_dir = os.path.join(
+        '/'.join(self._data_dir.split('/')[:-1]),
+        f'raw_data_{str(self.dataset_version)}',
+    )
+    self.raw_data = os.path.join(self._raw_data_dir, f'OpenSubtitles{year}')
     self.zipped_data = os.path.join(self._raw_data_dir, 'en.tar.gz')
 
     # Create the download url.
-    self.url = ('http://opus.nlpl.eu/download.php?f=OpenSubtitles' +
-                str(year) + '/en.tar.gz')
+    self.url = f'http://opus.nlpl.eu/download.php?f=OpenSubtitles{year}/en.tar.gz'
 
     # Check at which part of the pipeline are we at.
     self.data_pipeline_status(train_mode)
@@ -100,7 +101,7 @@ class DialogOpensubtitles64k2009(dialog_abstract.DialogAbstract):
 
     # open the 6 files
     trainsource, traintarget, devsource, devtarget, testsource, testtarget = \
-        self.open_6_files()
+          self.open_6_files()
 
     conv_id = 0
     number_of_lines = 0
@@ -110,7 +111,7 @@ class DialogOpensubtitles64k2009(dialog_abstract.DialogAbstract):
     for root, _, files in os.walk(self._raw_data_dir):
       for f in files:
         if conv_id % 100 == 0:
-          print('problem_log: Parsed ' + str(conv_id) + ' files.')
+          print(f'problem_log: Parsed {str(conv_id)} files.')
 
         source_lines = ''
         target_lines = ''
@@ -127,7 +128,7 @@ class DialogOpensubtitles64k2009(dialog_abstract.DialogAbstract):
             line = str(line)
 
             # Check if it's a new sentence.
-            if line.find('<s id="') != -1:
+            if '<s id="' in line:
               if words:
                 # Do some cleaning.
                 words = self.clean_line(words)
@@ -150,7 +151,7 @@ class DialogOpensubtitles64k2009(dialog_abstract.DialogAbstract):
               if index >= 0:
                 line = line[index:]
                 word = line[line.find('>') + 1:line.find('</w')]
-                words = words + ' ' + word.replace('\t', ' ')
+                words = f'{words} ' + word.replace('\t', ' ')
 
           # Delete the final source sentence, since it doesn't have a target.
           source_lines = '\n'.join(source_lines.split('\n')[:-2]) + '\n'

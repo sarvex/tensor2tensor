@@ -15,6 +15,7 @@
 
 """Data generators for the SNLI data-set."""
 
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -45,7 +46,7 @@ _LABEL_TO_ID = {
 _EXAMPLES_FILE = 'examples.txt'
 _SNLI_DATA_PATH = 'snli_1.0/snli_1.0_%s.txt'
 _SNLI_ZIP = 'snli_1.0.zip'
-_SNLI_URL = 'https://nlp.stanford.edu/projects/snli/' + _SNLI_ZIP
+_SNLI_URL = f'https://nlp.stanford.edu/projects/snli/{_SNLI_ZIP}'
 
 
 def _download_and_parse_dataset(tmp_dir, train):
@@ -86,12 +87,12 @@ def _parse_dataset(file_path, tmp_dir, train):
   """
   input_path = file_path
   file_name = 'train' if train else 'dev'
-  gen_output_path = os.path.join(tmp_dir, file_name + '.txt')
+  gen_output_path = os.path.join(tmp_dir, f'{file_name}.txt')
   example_output_path = os.path.join(tmp_dir, _EXAMPLES_FILE)
 
-  print('input path: ' + input_path)
-  print('gen_output_path: ' + gen_output_path)
-  print('example_output_path: ' + example_output_path)
+  print(f'input path: {input_path}')
+  print(f'gen_output_path: {gen_output_path}')
+  print(f'example_output_path: {example_output_path}')
 
   input_file = tf.gfile.Open(input_path, mode='r')
   examples = []
@@ -131,11 +132,10 @@ def _parse_dataset(file_path, tmp_dir, train):
 def _get_or_generate_vocab(tmp_dir, vocab_filename, vocab_size):
   """Read or create vocabulary."""
   vocab_filepath = os.path.join(tmp_dir, vocab_filename)
-  print('Vocab file written to: ' + vocab_filepath)
+  print(f'Vocab file written to: {vocab_filepath}')
 
   if tf.gfile.Exists(vocab_filepath):
-    gs = text_encoder.SubwordTextEncoder(vocab_filepath)
-    return gs
+    return text_encoder.SubwordTextEncoder(vocab_filepath)
   example_file = os.path.join(tmp_dir, _EXAMPLES_FILE)
   gs = text_encoder.SubwordTextEncoder()
   token_counts = tokenizer.corpus_token_counts(
@@ -154,7 +154,7 @@ def snli_token_generator(tmp_dir, train, vocab_size):
       tmp_dir, 'vocab.subword_text_encoder', vocab_size)
 
   file_name = 'train' if train else 'dev'
-  data_file = os.path.join(tmp_dir, file_name + '.txt')
+  data_file = os.path.join(tmp_dir, f'{file_name}.txt')
   with tf.gfile.GFile(data_file, mode='r') as f:
     for line in f:
       sent1, sent2, label = line.strip().split('\t')

@@ -71,10 +71,11 @@ class TranslateEncsWmt32k(translate.TranslateProblem):
     vocab_datasets = []
     if datasets[0][0].endswith("data-plaintext-format.tar"):
       vocab_datasets.append([
-          datasets[0][0], [
-              "%s-compiled-train.lang1" % self.name,
-              "%s-compiled-train.lang2" % self.name
-          ]
+          datasets[0][0],
+          [
+              f"{self.name}-compiled-train.lang1",
+              f"{self.name}-compiled-train.lang2",
+          ],
       ])
       datasets = datasets[1:]
     vocab_datasets += [[item[0], [item[1][0], item[1][1]]] for item in datasets]
@@ -93,7 +94,6 @@ class TranslateEncsWmtCharacters(translate.TranslateProblem):
     train = dataset_split == problem.DatasetSplit.TRAIN
     datasets = _ENCS_TRAIN_DATASETS if train else _ENCS_TEST_DATASETS
     tag = "train" if train else "dev"
-    data_path = translate.compile_data(tmp_dir, datasets,
-                                       "wmt_encs_chr_%s" % tag)
-    return text_problems.text2text_txt_iterator(data_path + ".lang1",
-                                                data_path + ".lang2")
+    data_path = translate.compile_data(tmp_dir, datasets, f"wmt_encs_chr_{tag}")
+    return text_problems.text2text_txt_iterator(f"{data_path}.lang1",
+                                                f"{data_path}.lang2")

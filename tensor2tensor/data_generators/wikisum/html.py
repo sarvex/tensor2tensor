@@ -29,15 +29,26 @@ def get_text_from_html(html):
   # Remove script and style tags
   for s in soup(["script", "style"]):
     s.decompose()
-  return "\n".join([s for s in _soup_strings(soup)])
+  return "\n".join(list(_soup_strings(soup)))
 
 
 def _soup_strings(soup):
   """Return text strings in soup."""
-  paragraph_tags = set([
-      "caption", "details", "h1", "h2", "h3", "h4", "h5", "h6", "li", "p", "td",
-      "div", "span"
-  ])
+  paragraph_tags = {
+      "caption",
+      "details",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "li",
+      "p",
+      "td",
+      "div",
+      "span",
+  }
 
   skip_children = None
   for descendant in soup.descendants:
@@ -57,22 +68,19 @@ def _soup_strings(soup):
 
     # Treat some tags as contiguous paragraphs, regardless of other tags nested
     # inside (like <a> or <b>).
-    if isinstance(descendant, bs4.Tag):
-      if descendant.name in paragraph_tags:
-        if descendant.find_all(paragraph_tags):
-          # If there are nested paragraph tags, don't treat it as a single
-          # contiguous tag.
-          continue
-        skip_children = list(descendant.descendants)
-        text = " ".join(descendant.get_text(" ", strip=True).split())
-        if text:
-          yield text
+    if isinstance(descendant, bs4.Tag) and descendant.name in paragraph_tags:
+      if descendant.find_all(paragraph_tags):
+        # If there are nested paragraph tags, don't treat it as a single
+        # contiguous tag.
         continue
+      skip_children = list(descendant.descendants)
+      if text := " ".join(descendant.get_text(" ", strip=True).split()):
+        yield text
+      continue
 
     if (isinstance(descendant, bs4.Comment) or
         not isinstance(descendant, bs4.NavigableString)):
       continue
 
-    text = " ".join(descendant.strip().split())
-    if text:
+    if text := " ".join(descendant.strip().split()):
       yield text

@@ -105,21 +105,18 @@ class VideoStochasticShapes10k(video_utils.VideoProblem):
   @staticmethod
   def get_circle(x, y, z, c, s):
     """Draws a circle with center(x, y), color c, size s and z-order of z."""
-    cir = plt.Circle((x, y), s, fc=c, zorder=z)
-    return cir
+    return plt.Circle((x, y), s, fc=c, zorder=z)
 
   @staticmethod
   def get_rectangle(x, y, z, c, s):
     """Draws a rectangle with center(x, y), color c, size s and z-order of z."""
-    rec = plt.Rectangle((x-s, y-s), s*2.0, s*2.0, fc=c, zorder=z)
-    return rec
+    return plt.Rectangle((x-s, y-s), s*2.0, s*2.0, fc=c, zorder=z)
 
   @staticmethod
   def get_triangle(x, y, z, c, s):
     """Draws a triangle with center (x, y), color c, size s and z-order of z."""
     points = np.array([[0, 0], [s, s*math.sqrt(3.0)], [s*2.0, 0]])
-    tri = plt.Polygon(points + [x-s, y-s], fc=c, zorder=z)
-    return tri
+    return plt.Polygon(points + [x-s, y-s], fc=c, zorder=z)
 
   def generate_stochastic_shape_instance(self):
     """Yields one video of a shape moving to a random direction.

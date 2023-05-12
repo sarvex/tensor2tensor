@@ -690,9 +690,9 @@ def dot_product_mpnn_attention(q,
       weighted sum.
   """
   with tf.variable_scope(
-      name,
-      default_name="dot_product_mpnn_attention",
-      values=[q, k, v, adjacency_matrix, num_edge_types]):
+        name,
+        default_name="dot_product_mpnn_attention",
+        values=[q, k, v, adjacency_matrix, num_edge_types]):
     # If not explicitly set, use num_transforms set to num_edge_types.
     num_transforms = (
         num_edge_types if num_transforms is None else num_transforms)
@@ -779,8 +779,7 @@ def dot_product_mpnn_attention(q,
     # actual edges.
     edge_compatibility *= edge_vectors  # Shape [B, T, N, N].
 
-    output = compute_values(edge_compatibility, v)
-    return output
+    return compute_values(edge_compatibility, v)
 
 
 def ggnn_fast_dense(node_states,
@@ -818,9 +817,9 @@ def ggnn_fast_dense(node_states,
   # between the same nodes (with only one edge of each type. adjacency_matrix
   # will need to be converted to shape [B, T, N, N].
   with tf.variable_scope(
-      name,
-      default_name="ggnn_fast_dense",
-      values=[node_states, adjacency_matrix, num_edge_types]):
+        name,
+        default_name="ggnn_fast_dense",
+        values=[node_states, adjacency_matrix, num_edge_types]):
     nodes_shape = common_layers.shape_list(node_states)
     v = _compute_edge_transforms(node_states,
                                  total_value_depth,
@@ -833,8 +832,7 @@ def ggnn_fast_dense(node_states,
 
     # Rearranging the dimensions to match the shape of all_edge_logits.
     edge_vectors = tf.transpose(adjacency_matrix, [0, 3, 1, 2])
-    output = compute_values(edge_vectors, v)
-    return output
+    return compute_values(edge_vectors, v)
 
 
 def compute_values(edge_compatibility, v):
@@ -854,10 +852,7 @@ def compute_values(edge_compatibility, v):
   # Shape = [B, T, N, V].
   all_edge_values = tf.matmul(tf.to_float(edge_compatibility), v)
 
-  # Combines the weighted value vectors together across edge types into a
-  # single N x V matrix for each batch.
-  output = tf.reduce_sum(all_edge_values, axis=1)  # Shape [B, N, V].
-  return output
+  return tf.reduce_sum(all_edge_values, axis=1)
 
 
 def precompute_edge_matrices(adjacency, hparams):
@@ -896,15 +891,11 @@ def precompute_edge_matrices(adjacency, hparams):
                                       num_nodes, hparams.hidden_size,
                                       hparams.hidden_size])
 
-  # reshape to [batch, l * d, l *d]
-  edge_matrices = tf.reshape(
-      tf.transpose(edge_matrices_flat, [0, 1, 3, 2, 4]), [
-          -1, num_nodes * hparams.hidden_size,
-          num_nodes * hparams.hidden_size
-      ],
-      name="edge_matrices")
-
-  return edge_matrices
+  return tf.reshape(
+      tf.transpose(edge_matrices_flat, [0, 1, 3, 2, 4]),
+      [-1, num_nodes * hparams.hidden_size, num_nodes * hparams.hidden_size],
+      name="edge_matrices",
+  )
 
 
 def dense_message_pass(node_states, edge_matrices):

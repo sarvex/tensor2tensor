@@ -115,10 +115,11 @@ def _is_import_err_msg(err_str, module):
   parts = module.split(".")
   suffixes = [".".join(parts[i:]) for i in range(len(parts))]
   prefixes = [".".join(parts[:i]) for i in range(len(parts))]
-  return err_str in (["No module named %s" % suffix for suffix in suffixes] +
-                     ["No module named '%s'" % suffix for suffix in suffixes] +
-                     ["No module named %s" % prefix for prefix in prefixes] +
-                     ["No module named '%s'" % prefix for prefix in prefixes])
+  return err_str in ((([f"No module named {suffix}" for suffix in suffixes] +
+                       [f"No module named '{suffix}'"
+                        for suffix in suffixes]) +
+                      [f"No module named {prefix}" for prefix in prefixes]) +
+                     [f"No module named '{prefix}'" for prefix in prefixes])
 
 
 def _handle_errors(errors):
@@ -131,9 +132,9 @@ def _handle_errors(errors):
   for module, err in errors:
     err_str = str(err)
     if log_all:
-      print("Did not import module: %s; Cause: %s" % (module, err_str))
+      print(f"Did not import module: {module}; Cause: {err_str}")
     if not _is_import_err_msg(err_str, module):
-      print("From module %s" % module)
+      print(f"From module {module}")
       raise err
 
 

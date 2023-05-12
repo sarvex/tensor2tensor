@@ -113,9 +113,8 @@ class TranslateEnroWmtMultiSmall64k(TranslateEnroWmt8k):
     """Generate just the first 6k samples for training."""
     # If not training, do the same as before.
     if dataset_split != problem.DatasetSplit.TRAIN:
-      for x in super(TranslateEnroWmtMultiSmall64k, self).generate_samples(
-          data_dir, tmp_dir, dataset_split):
-        yield x
+      yield from super(TranslateEnroWmtMultiSmall64k,
+                       self).generate_samples(data_dir, tmp_dir, dataset_split)
       raise StopIteration
     # Now we assume we're training.
     counter = 0

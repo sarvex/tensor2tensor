@@ -94,15 +94,11 @@ def file_page_generator(my_file, max_page_size=2**28):
         break
       end_pos = chunk.find(page_end, start_pos)
       if end_pos == -1:
-        if len(chunk) - start_pos > max_page_size:
-          leftovers = ""
-        else:
-          leftovers = chunk[start_pos:]
+        leftovers = "" if len(chunk) - start_pos > max_page_size else chunk[start_pos:]
         break
       raw_page = chunk[start_pos + len(page_start):end_pos]
       if len(raw_page) < max_page_size:
-        ret = parse_page(raw_page)
-        if ret:
+        if ret := parse_page(raw_page):
           yield ret
       current_pos = end_pos + len(page_end)
 
@@ -196,18 +192,18 @@ def maybe_copy_file_to_directory(source_filepath, target_directory):
     a string
   """
   if not tf.gfile.Exists(target_directory):
-    tf.logging.info("Creating directory %s" % target_directory)
+    tf.logging.info(f"Creating directory {target_directory}")
     os.mkdir(target_directory)
   target_filepath = os.path.join(target_directory,
                                  os.path.basename(source_filepath))
   if not tf.gfile.Exists(target_filepath):
-    tf.logging.info("Copying %s to %s" % (source_filepath, target_filepath))
+    tf.logging.info(f"Copying {source_filepath} to {target_filepath}")
     tf.gfile.Copy(source_filepath, target_filepath)
     statinfo = os.stat(target_filepath)
-    tf.logging.info("Successfully copied %s, %s bytes." % (target_filepath,
-                                                           statinfo.st_size))
+    tf.logging.info(
+        f"Successfully copied {target_filepath}, {statinfo.st_size} bytes.")
   else:
-    tf.logging.info("Not copying, file already found: %s" % target_filepath)
+    tf.logging.info(f"Not copying, file already found: {target_filepath}")
   return target_filepath
 
 
@@ -225,15 +221,14 @@ def corpus_page_generator(corpus_files, tmp_dir, max_page_size_exp):
   for remote_filepath in corpus_files:
 
     filepath = maybe_copy_file_to_directory(remote_filepath, tmp_dir)
-    tf.logging.info("Reading from " + filepath)
+    tf.logging.info(f"Reading from {filepath}")
 
     command = ["7z", "x", "-so", filepath]
     tf.logging.info("Running command: %s", command)
 
     p = subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=-1)
 
-    for page in file_page_generator(p.stdout, 2**max_page_size_exp):
-      yield page
+    yield from file_page_generator(p.stdout, 2**max_page_size_exp)
 
 
 def get_text(revision, strip=True):
@@ -253,10 +248,7 @@ def get_text(revision, strip=True):
   assert end_tag_pos != -1
   end_tag_pos += len(">")
   end_pos = revision.find("</text>")
-  if end_pos == -1:
-    ret = ""
-  else:
-    ret = revision[end_tag_pos:end_pos]
+  ret = "" if end_pos == -1 else revision[end_tag_pos:end_pos]
   if strip:
     ret = strip_text(ret)
   return ret
@@ -338,11 +330,7 @@ def _remove_curly_braces(text):
       ret += text[current_pos:match.start()]
     depth += 1 if text[match.start()] == "{" else -1
     current_pos = match.end()
-  if depth != 0:
-    # Many articles have mismatched braces, but it still seems better to remove
-    # them than not.
-    pass
-  else:
+  if depth == 0:
     ret += text[current_pos:]
   return ret
 
@@ -362,9 +350,7 @@ def _remove_double_brackets(text):
       return ""
     # keep the part after the bar.
     bar_pos = s.find("|")
-    if bar_pos == -1:
-      return s
-    return s[bar_pos + 1:]
+    return s if bar_pos == -1 else s[bar_pos + 1:]
 
   return _find_and_replace(text, "[[", "]]", replacement_fn)
 
@@ -386,7 +372,7 @@ def _remove_boring_lines(text):
 
 
 def all_corpus_files(data_prefix):
-  return sorted(tf.gfile.Glob(data_prefix + "*"))
+  return sorted(tf.gfile.Glob(f"{data_prefix}*"))
 
 
 def corpus_files_for_shard(shard_num, train_shards, dev_shards, data_prefix):
@@ -434,8 +420,7 @@ def get_or_generate_vocabulary(data_dir,
         all_corpus_files(data_prefix)[::-1], tmp_dir, max_page_size_exp):
       revisions = page["revisions"]
       if revisions:
-        text = get_text(revisions[-1], strip=strip)
-        yield text
+        yield get_text(revisions[-1], strip=strip)
         count += 1
         if count % 100 == 0:
           tf.logging.info("reading pages for vocab %d" % count)
@@ -461,11 +446,10 @@ def get_encoder_from_vocab(vocab_filepath):
     is set.
   """
   if not tf.gfile.Exists(vocab_filepath):
-    raise ValueError("Vocab file does not exist: {}.".format(vocab_filepath))
+    raise ValueError(f"Vocab file does not exist: {vocab_filepath}.")
 
   tf.logging.info("Found vocab file: %s", vocab_filepath)
-  encoder = text_encoder.SubwordTextEncoder(vocab_filepath)
-  return encoder
+  return text_encoder.SubwordTextEncoder(vocab_filepath)
 
 
 def throw_empty_pairs(src_tgt_pairs):
@@ -571,8 +555,7 @@ def introduce_errors(s,
       ret.append(s[random.randint(0, len(s) - 1)])
       pos += 1
     elif operation == "transpose":
-      ret.append(s[pos + 1] if pos + 1 < len(s) else "")
-      ret.append(s[pos])
+      ret.extend((s[pos + 1] if pos + 1 < len(s) else "", s[pos]))
       pos += 2
     else:
       assert operation == "infill"
@@ -630,12 +613,7 @@ def fast_match_sequences(a,
     return []
   if a_start == a_end or b_start == b_end:
     return [("diff", a_start, a_end, b_start, b_end)]
-  # Compute an index from value to first occurrence in the b segment.
-  # Technically, we should index and explore all occurrences of a value,
-  # but that might be much slower.
-  b_index = {}
-  for j in range(b_end - 1, b_start - 1, -1):
-    b_index[b[j]] = j
+  b_index = {b[j]: j for j in range(b_end - 1, b_start - 1, -1)}
   # we will look for the longest match we can find.
   max_match_length = 0
   a_pos = a_start

@@ -83,14 +83,12 @@ class AlgorithmicMathDeepmindAll(text_problems.Text2TextProblem):
     # Create the list of directories with data files.
     train_dirs = ["v1.0/train-easy", "v1.0/train-medium", "v1.0/train-hard"]
     eval_dirs = ["v1.0/interpolate", "v1.0/extrapolate"]
-    dirs = eval_dirs
-    if dataset_split == problem.DatasetSplit.TRAIN:
-      dirs = train_dirs
+    dirs = train_dirs if dataset_split == problem.DatasetSplit.TRAIN else eval_dirs
     dirs = [os.path.join(tmp_dir, d) for d in dirs]
 
     # Iterate over directories and files generating examples.
     for d in dirs:
-      files = tf.gfile.Glob(d + "/*.txt")
+      files = tf.gfile.Glob(f"{d}/*.txt")
       for fname in files:
         # In each text file, the first line is the input, the next the answer,
         # and so on until the end of the file.

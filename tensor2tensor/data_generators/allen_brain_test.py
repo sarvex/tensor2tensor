@@ -85,7 +85,7 @@ def mock_raw_data(tmp_dir, raw_dim=1024, num_channels=3, num_images=1):
 
   for image_id in range(num_images):
 
-    raw_image_path = os.path.join(tmp_dir, "%s.jpg" % image_id)
+    raw_image_path = os.path.join(tmp_dir, f"{image_id}.jpg")
 
     mock_raw_image(x_dim=raw_dim, y_dim=raw_dim,
                    num_channels=num_channels,
@@ -262,7 +262,7 @@ class TestImageMock(tf.test.TestCase):
       ]
 
       for cid, case in enumerate(cases):
-        output_path = os.path.join(tmp_dir, "dummy%s.jpg" % cid)
+        output_path = os.path.join(tmp_dir, f"dummy{cid}.jpg")
         img = mock_raw_image(x_dim=case["x_dim"],
                              y_dim=case["y_dim"],
                              num_channels=case["num_channels"],

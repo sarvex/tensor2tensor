@@ -79,27 +79,20 @@ def cifar_generator(cifar_version, tmp_dir, training, how_many, start_from=0):
     prefix = _CIFAR10_PREFIX
     image_size = _CIFAR10_IMAGE_SIZE
     label_key = "labels"
-  elif cifar_version == "cifar100" or cifar_version == "cifar20":
+  elif cifar_version in ["cifar100", "cifar20"]:
     url = _CIFAR100_URL
     train_files = _CIFAR100_TRAIN_FILES
     test_files = _CIFAR100_TEST_FILES
     prefix = _CIFAR100_PREFIX
     image_size = _CIFAR100_IMAGE_SIZE
-    if cifar_version == "cifar100":
-      label_key = "fine_labels"
-    else:
-      label_key = "coarse_labels"
-
+    label_key = "fine_labels" if cifar_version == "cifar100" else "coarse_labels"
   _get_cifar(tmp_dir, url)
   data_files = train_files if training else test_files
   all_images, all_labels = [], []
   for filename in data_files:
     path = os.path.join(tmp_dir, prefix, filename)
     with tf.gfile.Open(path, "rb") as f:
-      if six.PY2:
-        data = cPickle.load(f)
-      else:
-        data = cPickle.load(f, encoding="latin1")
+      data = cPickle.load(f) if six.PY2 else cPickle.load(f, encoding="latin1")
     images = data["data"]
     num_images = images.shape[0]
     images = images.reshape((num_images, 3, image_size, image_size))

@@ -116,12 +116,11 @@ class MSRParaphraseCorpus(text_problems.TextConcat2ClassProblem):
       filesplit = "msr_paraphrase_test.txt"
     dev_ids = []
     if dataset_split != problem.DatasetSplit.TEST:
-      for row in tf.gfile.Open(os.path.join(mrpc_dir, "dev_ids.tsv")):
-        dev_ids.append(row.strip().split("\t"))
-
+      dev_ids.extend(
+          row.strip().split("\t")
+          for row in tf.gfile.Open(os.path.join(mrpc_dir, "dev_ids.tsv")))
     filename = os.path.join(mrpc_dir, filesplit)
-    for example in self.example_generator(filename, dev_ids, dataset_split):
-      yield example
+    yield from self.example_generator(filename, dev_ids, dataset_split)
 
 
 @registry.register_problem

@@ -331,7 +331,7 @@ class AlgorithmicReverseNlplike32k(AlgorithmicReverseNlplike8k):
 
 def lower_endian_to_number(l, base):
   """Helper function: convert a list of digits in the given base to a number."""
-  return sum([d * (base**i) for i, d in enumerate(l)])
+  return sum(d * (base**i) for i, d in enumerate(l))
 
 
 def number_to_lower_endian(n, base):

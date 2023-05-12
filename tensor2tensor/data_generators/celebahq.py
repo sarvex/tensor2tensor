@@ -68,7 +68,7 @@ class ImageCelebahq128(image_utils.ImageProblem):
       # Use the last 10 shards.
       shard_str = "0009"
 
-    return "%s-%s*" % (path, shard_str)
+    return f"{path}-{shard_str}*"
 
   def generate_data(self, data_dir, tmp_dir, task_id=-1):
     raise NotImplementedError("Data preprocessing for CelebA-HQ is not "

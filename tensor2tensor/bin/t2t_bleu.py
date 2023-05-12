@@ -115,7 +115,7 @@ def main(_):
     while not os.path.exists(transl_dir):
       time.sleep(10)
       if time.time() > exit_time:
-        raise ValueError("Translation dir %s does not exist" % transl_dir)
+        raise ValueError(f"Translation dir {transl_dir} does not exist")
 
   last_step_file = os.path.join(FLAGS.event_dir, "last_evaluated_step.txt")
   if FLAGS.min_steps == -1:
@@ -138,29 +138,33 @@ def main(_):
           os.path.getmtime(f) for f in all_files if os.path.isfile(f))
       values = []
       if FLAGS.bleu_variant in ("uncased", "both"):
-        values.append(tf.Summary.Value(
-            tag="BLEU_uncased" + FLAGS.tag_suffix, simple_value=0))
+        values.append(
+            tf.Summary.Value(tag=f"BLEU_uncased{FLAGS.tag_suffix}",
+                             simple_value=0))
       if FLAGS.bleu_variant in ("cased", "both"):
-        values.append(tf.Summary.Value(
-            tag="BLEU_cased" + FLAGS.tag_suffix, simple_value=0))
+        values.append(
+            tf.Summary.Value(tag=f"BLEU_cased{FLAGS.tag_suffix}",
+                             simple_value=0))
       writer.add_event(tf.summary.Event(summary=tf.Summary(value=values),
                                         wall_time=start_time, step=0))
       FLAGS.report_zero = False
 
     filename = transl_file.filename
-    tf.logging.info("Evaluating " + filename)
+    tf.logging.info(f"Evaluating {filename}")
     values = []
     if FLAGS.bleu_variant in ("uncased", "both"):
       bleu = 100 * bleu_hook.bleu_wrapper(FLAGS.reference, filename,
                                           case_sensitive=False)
-      values.append(tf.Summary.Value(tag="BLEU_uncased" + FLAGS.tag_suffix,
-                                     simple_value=bleu))
+      values.append(
+          tf.Summary.Value(tag=f"BLEU_uncased{FLAGS.tag_suffix}",
+                           simple_value=bleu))
       tf.logging.info("%s: BLEU_uncased = %6.2f" % (filename, bleu))
     if FLAGS.bleu_variant in ("cased", "both"):
       bleu = 100 * bleu_hook.bleu_wrapper(FLAGS.reference, filename,
                                           case_sensitive=True)
-      values.append(tf.Summary.Value(tag="BLEU_cased" + FLAGS.tag_suffix,
-                                     simple_value=bleu))
+      values.append(
+          tf.Summary.Value(tag=f"BLEU_cased{FLAGS.tag_suffix}",
+                           simple_value=bleu))
       tf.logging.info("%s: BLEU_cased = %6.2f" % (transl_file.filename, bleu))
     writer.add_event(tf.summary.Event(
         summary=tf.Summary(value=values),

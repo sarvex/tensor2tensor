@@ -246,7 +246,7 @@ def get_schedule_distribution(schedule, global_step=None):
   elif interpolation == 'linear':
     interpolation_fn = linear_interpolation
   else:
-    raise ValueError('Invalid interpolation strategy: %s' % interpolation)
+    raise ValueError(f'Invalid interpolation strategy: {interpolation}')
   return tf.reshape(
       tf.py_func(
           func=lambda x: interpolation_fn(x, np.array(steps), np.array(pmfs)),
@@ -390,8 +390,8 @@ def encode_schedule(schedule):
     The string encoding of the schedule tuple.
   """
   interpolation, steps, pmfs = schedule
-  return interpolation + ' ' + ' '.join(
-      '@' + str(s) + ' ' + ' '.join(map(str, p)) for s, p in zip(steps, pmfs))
+  return f'{interpolation} ' + ' '.join(f'@{str(s)} ' + ' '.join(map(str, p))
+                                        for s, p in zip(steps, pmfs))
 
 
 def decode_schedule(string):

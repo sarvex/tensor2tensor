@@ -64,7 +64,7 @@ def main(_):
                   "%d groups in shard %d. Total URLs: %d",
                   num_groups, FLAGS.shard_id, len(shard_urls))
   command_prefix = FLAGS.command.split() + [
-      "--urls_dir=%s" % FLAGS.urls_dir,
+      f"--urls_dir={FLAGS.urls_dir}",
       "--shard_id=%d" % FLAGS.shard_id,
       "--debug_num_urls=%d" % FLAGS.debug_num_urls,
   ]
@@ -72,7 +72,7 @@ def main(_):
     for i in range(num_groups):
       command = list(command_prefix)
       out_dir = os.path.join(FLAGS.out_dir, "process_%d" % i)
-      command.append("--out_dir=%s" % out_dir)
+      command.append(f"--out_dir={out_dir}")
       command.append("--group_id=%d" % i)
       try:
         # Even on 1 CPU, each group should finish within an hour.

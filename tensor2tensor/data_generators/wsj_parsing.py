@@ -98,7 +98,7 @@ def words_and_tags_from_wsj_tree(tree_string):
       assert tok[-1] == ")"
       stack.pop()  # Pop the POS-tag.
       while tok[-2] == ")":
-        tags.append("/" + stack.pop())
+        tags.append(f"/{stack.pop()}")
         tok = tok[:-1]
       words.append(tok[:-1])
   return str.join(" ", words), str.join(" ", tags[1:-1])  # Strip "TOP" tag.
@@ -125,13 +125,11 @@ def token_generator(tree_path, source_token_vocab, target_token_vocab,
   """
   eos_list = [] if eos is None else [eos]
   with tf.gfile.GFile(tree_path, mode="r") as tree_file:
-    tree_line = tree_file.readline()
-    while tree_line:
+    while tree_line := tree_file.readline():
       source, target = words_and_tags_from_wsj_tree(tree_line)
       source_ints = source_token_vocab.encode(source.strip()) + eos_list
       target_ints = target_token_vocab.encode(target.strip()) + eos_list
       yield {"inputs": source_ints, "targets": target_ints}
-      tree_line = tree_file.readline()
 
 
 def parsing_token_generator(data_dir, tmp_dir, train, source_vocab_size,

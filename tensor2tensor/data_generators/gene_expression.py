@@ -241,7 +241,7 @@ def dataset_generator(filepath,
     src_keys = [s % dataset for s in ["%s_in", "%s_na", "%s_out"]]
     src_values = [h5_file[k] for k in src_keys]
     inp_data, mask_data, out_data = src_values
-    assert len(set([v.len() for v in src_values])) == 1
+    assert len({v.len() for v in src_values}) == 1
 
     if start_idx is None:
       start_idx = 0
@@ -290,6 +290,5 @@ def to_example_dict(encoder, inputs, mask, outputs):
   assert mask.shape[0] == outputs.shape[0]
 
   example_keys = ["inputs", "targets_mask", "targets", "targets_shape"]
-  ex_dict = dict(
+  return dict(
       zip(example_keys, [input_ids, targets_mask, targets, targets_shape]))
-  return ex_dict

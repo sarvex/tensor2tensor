@@ -177,13 +177,12 @@ class DiscretizationTest(tf.test.TestCase):
                               shape=[1, 1, 2**z_size, hidden_size],
                               initializer=tf.constant_initializer(0.),
                               dtype=tf.float32)
-      ema_count = []
       ema_count_i = tf.get_variable(
           "ema_count",
           [1, 2**z_size],
           initializer=tf.constant_initializer(0),
           trainable=False)
-      ema_count.append(ema_count_i)
+      ema_count = [ema_count_i]
       ema_means = []
       with tf.colocate_with(means):
         ema_means_i = tf.get_variable("ema_means",
@@ -213,13 +212,12 @@ class DiscretizationTest(tf.test.TestCase):
                               shape=[1, 1, 2**z_size, hidden_size],
                               initializer=tf.constant_initializer(0.),
                               dtype=tf.float32)
-      ema_count = []
       ema_count_i = tf.get_variable(
           "ema_count",
           [1, 2**z_size],
           initializer=tf.constant_initializer(0),
           trainable=False)
-      ema_count.append(ema_count_i)
+      ema_count = [ema_count_i]
       ema_means = []
       with tf.colocate_with(means):
         ema_means_i = tf.get_variable("ema_means",
